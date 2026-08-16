@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>وهم | میز</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #05050a; overflow: hidden; font-family: Tahoma, sans-serif; }
+
+  .scene {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #05050a;
+  }
+
+  .desk-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 1400px;
+    aspect-ratio: 1024 / 559;
+  }
+
+  .desk-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+  }
+
+  .hotspot {
+    position: absolute;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .hotspot:hover {
+    background: rgba(255, 220, 150, 0.12);
+    box-shadow: 0 0 25px rgba(255, 220, 150, 0.25) inset;
+  }
+
+  /* book area, roughly center of desk photo */
+  .hotspot--book {
+    left: 33%;
+    top: 32%;
+    width: 34%;
+    height: 62%;
+  }
+
+  /* CD player, top-left corner */
+  .hotspot--cd {
+    left: 1%;
+    top: 1%;
+    width: 22%;
+    height: 36%;
+    border-radius: 50%;
+  }
+  .hotspot--cd:hover {
+    background: rgba(150, 200, 255, 0.18);
+    box-shadow: 0 0 25px rgba(150, 200, 255, 0.3) inset;
+  }
+
+  .hint {
+    position: fixed;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(242, 230, 207, 0.55);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    z-index: 3;
+  }
+
+  /* ---------- Blink transition overlay ---------- */
+  .eyelid {
+    position: fixed;
+    left: 0; right: 0;
+    background: #05050a;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .eyelid-top { top: 0; height: 50%; transform: translateY(-100%); }
+  .eyelid-bottom { bottom: 0; height: 50%; transform: translateY(100%); }
+
+  .eyelid.closing.eyelid-top { animation: closeTop 0.55s ease forwards; }
+  .eyelid.closing.eyelid-bottom { animation: closeBottom 0.55s ease forwards; }
+  @keyframes closeTop { to { transform: translateY(0); } }
+  @keyframes closeBottom { to { transform: translateY(0); } }
+
+  .eyelid.opening.eyelid-top { animation: openTop 0.6s ease forwards; }
+  .eyelid.opening.eyelid-bottom { animation: openBottom 0.6s ease forwards; }
+  @keyframes openTop { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+  @keyframes openBottom { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
+  /* ---------- Music panel ---------- */
+  .music-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 5, 10, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    z-index: 50;
+  }
+  .music-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .music-split {
+    display: flex;
+    width: min(900px, 92vw);
+    height: min(560px, 82vh);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,0,0,0.6);
+  }
+
+  .music-half {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+  }
+
+  .music-half.dream {
+    background: linear-gradient(180deg, #3a2f18 0%, #1c160c 100%);
+  }
+  .music-half.nightmare {
+    background: linear-gradient(180deg, #16202e 0%, #0a0e16 100%);
+  }
+
+  .music-half h2 {
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    letter-spacing: 3px;
+    font-size: 1.4rem;
+    color: #f2e6cf;
+    margin-bottom: 26px;
+    text-transform: uppercase;
+  }
+  .music-half.dream h2 { text-shadow: 0 0 18px rgba(217,164,65,0.5); }
+  .music-half.nightmare h2 { text-shadow: 0 0 18px rgba(107,140,174,0.5); color: #dce6f2; }
+
+  .song {
+    width: 100%;
+    max-width: 260px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    color: #ded4bd;
+    font-size: 0.92rem;
+    cursor: pointer;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: background 0.25s ease, transform 0.2s ease;
+    text-align: center;
+  }
+  .song:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+  .music-half.dream .song:hover { box-shadow: 0 0 16px rgba(217,164,65,0.35); }
+  .music-half.nightmare .song:hover { box-shadow: 0 0 16px rgba(107,140,174,0.35); }
+
+  .close-music {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(240,228,200,0.4);
+    color: rgba(240,228,200,0.85);
+    background: rgba(0,0,0,0.3);
+    font-size: 1.1rem;
+    cursor: pointer;
+    z-index: 51;
+  }
+</style>
+</head>
+<body>
+
+<div class="eyelid eyelid-top" id="eyelidTop"></div>
+<div class="eyelid eyelid-bottom" id="eyelidBottom"></div>
+
+<div class="hint">روی کتاب کلیک کن تا خوابت رو بنویسی، یا روی سی‌دی‌پلیر برای انتخاب موزیک</div>
+
+<div class="scene">
+  <div class="desk-wrap">
+    <img class="desk-img" src="desk.jpg" alt="میز وهم" />
+    <div class="hotspot hotspot--book" id="bookHotspot" title="کتاب"></div>
+    <div class="hotspot hotspot--cd" id="cdHotspot" title="سی‌دی‌پلیر"></div>
+  </div>
+</div>
+
+<div class="music-overlay" id="musicOverlay">
+  <button class="close-music" id="closeMusic">✕</button>
+  <div class="music-split">
+    <div class="music-half dream">
+      <h2>DREAM</h2>
+      <div class="song" data-type="dream" data-name="Midnight Hush">Midnight Hush</div>
+      <div class="song" data-type="dream" data-name="Soft Drift">Soft Drift</div>
+      <div class="song" data-type="dream" data-name="Golden Cloudline">Golden Cloudline</div>
+      <div class="song" data-type="dream" data-name="Quiet Orbit">Quiet Orbit</div>
+      <div class="song" data-type="dream" data-name="Feathered Sky">Feathered Sky</div>
+    </div>
+    <div class="music-half nightmare">
+      <h2>NIGHTMARE</h2>
+      <div class="song" data-type="nightmare" data-name="Hollow Corridor">Hollow Corridor</div>
+      <div class="song" data-type="nightmare" data-name="Static Bloom">Static Bloom</div>
+      <div class="song" data-type="nightmare" data-name="Low Tide Whisper">Low Tide Whisper</div>
+      <div class="song" data-type="nightmare" data-name="Cracked Mirror">Cracked Mirror</div>
+      <div class="song" data-type="nightmare" data-name="Unlit Hallway">Unlit Hallway</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const eyelidTop = document.getElementById('eyelidTop');
+  const eyelidBottom = document.getElementById('eyelidBottom');
+
+  function blinkTo(url) {
+    eyelidTop.classList.add('closing');
+    eyelidBottom.classList.add('closing');
+    setTimeout(() => { window.location.href = url; }, 520);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    eyelidTop.classList.add('opening');
+    eyelidBottom.classList.add('opening');
+  });
+
+  document.getElementById('bookHotspot').addEventListener('click', () => {
+    const track = sessionStorage.getItem('vahm_track');
+    const type = sessionStorage.getItem('vahm_track_type');
+    let url = 'write.html';
+    if (track) url += `?track=${encodeURIComponent(track)}&type=${encodeURIComponent(type)}`;
+    blinkTo(url);
+  });
+
+  const cdHotspot = document.getElementById('cdHotspot');
+  const musicOverlay = document.getElementById('musicOverlay');
+  const closeMusic = document.getElementById('closeMusic');
+
+  cdHotspot.addEventListener('click', () => {
+    musicOverlay.classList.add('open');
+  });
+  closeMusic.addEventListener('click', () => {
+    musicOverlay.classList.remove('open');
+  });
+
+  document.querySelectorAll('.song').forEach(song => {
+    song.addEventListener('click', () => {
+      sessionStorage.setItem('vahm_track', song.dataset.name);
+      sessionStorage.setItem('vahm_track_type', song.dataset.type);
+      document.querySelectorAll('.song').forEach(s => s.style.background = '');
+      song.style.background = song.dataset.type === 'dream'
+        ? 'rgba(217,164,65,0.28)'
+        : 'rgba(107,140,174,0.28)';
+      setTimeout(() => { musicOverlay.classList.remove('open'); }, 350);
+    });
+  });
+</script>
+
+</body>
+</html>

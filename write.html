@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>وهم | نوشتن خواب</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: radial-gradient(ellipse at center, #241f18 0%, #0a0806 75%);
+    font-family: Tahoma, sans-serif;
+    overflow: hidden;
+  }
+
+  .stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- Paper ---------- */
+  .paper {
+    position: relative;
+    width: min(680px, 88vw);
+    height: min(520px, 78vh);
+    background: linear-gradient(135deg, #efe6d2 0%, #e7dcc3 60%, #ded1b3 100%);
+    border-radius: 3px;
+    box-shadow:
+      0 0 60px rgba(0,0,0,0.55),
+      inset 0 0 40px rgba(120, 100, 60, 0.15);
+    padding: 46px 42px 90px 42px;
+    transform: scale(0.94);
+    animation: appear 0.9s ease forwards;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 1.2s ease;
+  }
+
+  .paper.glow-dream {
+    animation: appear 0.9s ease forwards, pulseDream 3s ease-in-out infinite;
+  }
+  .paper.glow-nightmare {
+    animation: appear 0.9s ease forwards, pulseNightmare 3s ease-in-out infinite;
+  }
+  @keyframes pulseDream {
+    0%, 100% { box-shadow: 0 0 60px rgba(0,0,0,0.55), inset 0 0 40px rgba(120,100,60,0.15), 0 0 0px rgba(217,164,65,0); }
+    50%      { box-shadow: 0 0 60px rgba(0,0,0,0.55), inset 0 0 40px rgba(120,100,60,0.15), 0 0 40px rgba(217,164,65,0.45); }
+  }
+  @keyframes pulseNightmare {
+    0%, 100% { box-shadow: 0 0 60px rgba(0,0,0,0.55), inset 0 0 40px rgba(120,100,60,0.15), 0 0 0px rgba(107,140,174,0); }
+    50%      { box-shadow: 0 0 60px rgba(0,0,0,0.55), inset 0 0 40px rgba(120,100,60,0.15), 0 0 40px rgba(107,140,174,0.45); }
+  }
+
+  .now-playing {
+    position: absolute;
+    top: -46px;
+    left: 0;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    color: #f2e6cf;
+    font-size: 0.82rem;
+    letter-spacing: 0.5px;
+  }
+  .now-playing.show { display: flex; }
+  .now-playing .note {
+    display: inline-block;
+    animation: sway 1.4s ease-in-out infinite;
+  }
+  @keyframes sway {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-3px) rotate(8deg); }
+  }
+
+  .paper::before {
+    /* torn/rough edge texture illusion */
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    box-shadow: inset 0 0 0 1px rgba(90, 70, 40, 0.15);
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 10% 15%, rgba(120,95,55,0.06) 0, transparent 3%),
+      radial-gradient(circle at 80% 70%, rgba(120,95,55,0.05) 0, transparent 4%),
+      radial-gradient(circle at 30% 85%, rgba(120,95,55,0.05) 0, transparent 3%);
+  }
+
+  @keyframes appear {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .paper.dissolve {
+    animation: dissolve 1.6s ease forwards;
+  }
+
+  @keyframes dissolve {
+    0%   { opacity: 1; filter: blur(0px); transform: scale(1) rotate(0deg); }
+    60%  { opacity: 0.4; filter: blur(6px); transform: scale(1.05) rotate(2deg); }
+    100% { opacity: 0; filter: blur(14px); transform: scale(1.15) rotate(-3deg); }
+  }
+
+  textarea {
+    flex: 1;
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: 'Courier New', monospace;
+    font-size: 1.15rem;
+    line-height: 2;
+    color: #2b241a;
+    direction: rtl;
+  }
+
+  textarea::placeholder {
+    color: rgba(60, 50, 35, 0.4);
+    font-style: italic;
+  }
+
+  /* ---------- Gramophone corner ---------- */
+  .gramophone {
+    position: absolute;
+    top: -34px;
+    right: -30px;
+    width: 110px;
+    height: 110px;
+    cursor: pointer;
+    z-index: 5;
+  }
+
+  .gramophone svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
+
+  .gramophone-label {
+    position: absolute;
+    top: 100px;
+    right: 4px;
+    font-size: 0.7rem;
+    color: rgba(240, 228, 200, 0.6);
+    white-space: nowrap;
+  }
+
+  /* ---------- Music panel ---------- */
+  .music-panel {
+    position: absolute;
+    top: 90px;
+    right: -10px;
+    background: rgba(20, 16, 10, 0.92);
+    border: 1px solid rgba(200, 175, 120, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    width: 220px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    z-index: 6;
+  }
+
+  .music-panel.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .music-panel h4 {
+    color: #f2e6cf;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+    font-weight: normal;
+    letter-spacing: 0.5px;
+  }
+
+  .track {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: #d8cbb0;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .track:hover { background: rgba(255,255,255,0.06); }
+  .track.selected { background: rgba(210, 180, 120, 0.18); color: #fff2d8; }
+
+  .track .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #6b7280;
+  }
+  .track.dream .dot { background: #d9a441; }
+  .track.nightmare .dot { background: #6b8cae; }
+
+  .section-title {
+    color: rgba(240,228,200,0.4);
+    font-size: 0.7rem;
+    margin: 10px 0 4px;
+    letter-spacing: 1px;
+  }
+
+  /* ---------- End button ---------- */
+  .end-btn {
+    position: absolute;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: transparent;
+    border: 1px solid rgba(60, 50, 35, 0.4);
+    color: #3c3223;
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 1rem;
+    padding: 8px 34px;
+    border-radius: 20px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .end-btn:hover {
+    background: rgba(60, 50, 35, 0.08);
+  }
+
+  /* ---------- Dissolving text particles ---------- */
+  .ghost-text {
+    position: absolute;
+    inset: 46px 42px 90px 42px;
+    font-family: 'Courier New', monospace;
+    font-size: 1.15rem;
+    line-height: 2;
+    color: #2b241a;
+    white-space: pre-wrap;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .ghost-text.show {
+    animation: ghostRise 1.8s ease forwards;
+  }
+
+  @keyframes ghostRise {
+    0%   { opacity: 0.9; transform: translateY(0) scale(1); filter: blur(0px); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.1); filter: blur(10px); }
+  }
+
+  /* ---------- Image reveal ---------- */
+  .image-reveal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+  }
+
+  .image-reveal.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .flicker-box {
+    width: min(520px, 80vw);
+    height: min(360px, 55vh);
+    border-radius: 4px;
+    background: linear-gradient(135deg, #1a1a1a, #2b2b2b);
+    box-shadow: 0 0 70px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(240,228,200,0.35);
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    animation: flicker 0.6s ease-in-out infinite alternate;
+    position: relative;
+    overflow: hidden;
+  }
+
+  @keyframes flicker {
+    from { filter: brightness(0.7) blur(2px); }
+    to   { filter: brightness(1.1) blur(0px); }
+  }
+
+  .flicker-box.settled {
+    animation: none;
+    filter: brightness(1) blur(0px);
+  }
+
+  .close-x {
+    position: absolute;
+    top: -46px;
+    right: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid rgba(240,228,200,0.4);
+    color: rgba(240,228,200,0.8);
+    background: transparent;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .close-x.visible { display: flex; }
+
+  .hint {
+    position: fixed;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(242, 230, 207, 0.5);
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="hint">روی گرامافون کلیک کن و آهنگ رو انتخاب کن، بعد خواب رو بنویس</div>
+
+<div class="stage" id="stage">
+  <div class="paper" id="paper">
+    <div class="now-playing" id="nowPlaying">
+      <span class="note">♪</span>
+      <span id="nowPlayingText"></span>
+    </div>
+    <div class="gramophone" id="gramophoneBtn">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 55 C15 35, 35 20, 55 25 L85 15 C88 30, 88 50, 82 62 L58 52 C50 65, 30 68, 18 60 Z"
+              fill="#2b2419" stroke="#141008" stroke-width="1.5"/>
+        <circle cx="30" cy="60" r="14" fill="#3a2f20" stroke="#141008" stroke-width="1.5"/>
+        <circle cx="30" cy="60" r="5" fill="#141008"/>
+        <rect x="28" y="72" width="4" height="14" fill="#2b2419"/>
+      </svg>
+    </div>
+    <div class="gramophone-label" id="gramophoneLabel">هنوز موزیکی انتخاب نشده</div>
+
+    <div class="music-panel" id="musicPanel">
+      <h4>موزیک خواب رو انتخاب کن</h4>
+      <div class="section-title">رویا</div>
+      <div class="track dream" data-name="نجوای شبانه" data-type="dream">
+        <span class="dot"></span> نجوای شبانه
+      </div>
+      <div class="track dream" data-name="پرواز آرام" data-type="dream">
+        <span class="dot"></span> پرواز آرام
+      </div>
+      <div class="section-title">کابوس</div>
+      <div class="track nightmare" data-name="سایه‌ی دور" data-type="nightmare">
+        <span class="dot"></span> سایه‌ی دور
+      </div>
+      <div class="track nightmare" data-name="نفس بریده" data-type="nightmare">
+        <span class="dot"></span> نفس بریده
+      </div>
+    </div>
+
+    <textarea id="dreamText" placeholder="خواب دیشبت رو اینجا بنویس..."></textarea>
+    <div class="ghost-text" id="ghostText"></div>
+
+    <button class="end-btn" id="endBtn">پایان</button>
+  </div>
+</div>
+
+<div class="image-reveal" id="imageReveal">
+  <div style="position:relative;">
+    <div class="flicker-box" id="flickerBox">در حال شکل‌گرفتن خواب...</div>
+    <button class="close-x" id="closeX">✕</button>
+  </div>
+</div>
+
+<script>
+  const gramophoneBtn = document.getElementById('gramophoneBtn');
+  const musicPanel = document.getElementById('musicPanel');
+  const gramophoneLabel = document.getElementById('gramophoneLabel');
+  const tracks = document.querySelectorAll('.track');
+  const endBtn = document.getElementById('endBtn');
+  const paper = document.getElementById('paper');
+  const dreamText = document.getElementById('dreamText');
+  const ghostText = document.getElementById('ghostText');
+  const imageReveal = document.getElementById('imageReveal');
+  const flickerBox = document.getElementById('flickerBox');
+  const closeX = document.getElementById('closeX');
+
+  let selectedTrack = null;
+
+  // Read track passed from the desk's CD player (via URL query params)
+  const params = new URLSearchParams(window.location.search);
+  const incomingTrack = params.get('track');
+  const incomingType = params.get('type');
+  const nowPlaying = document.getElementById('nowPlaying');
+  const nowPlayingText = document.getElementById('nowPlayingText');
+
+  if (incomingTrack) {
+    selectedTrack = { name: incomingTrack, type: incomingType };
+    nowPlayingText.textContent = (incomingType === 'dream' ? '🌙 ' : '🌩 ') + incomingTrack;
+    nowPlaying.classList.add('show');
+    paper.classList.add(incomingType === 'dream' ? 'glow-dream' : 'glow-nightmare');
+    gramophoneLabel.textContent = (incomingType === 'dream' ? '🌙 رویا: ' : '🌩 کابوس: ') + incomingTrack;
+  }
+
+  gramophoneBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    musicPanel.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!musicPanel.contains(e.target) && e.target !== gramophoneBtn) {
+      musicPanel.classList.remove('open');
+    }
+  });
+
+  tracks.forEach(t => {
+    t.addEventListener('click', () => {
+      tracks.forEach(x => x.classList.remove('selected'));
+      t.classList.add('selected');
+      selectedTrack = { name: t.dataset.name, type: t.dataset.type };
+      gramophoneLabel.textContent = (t.dataset.type === 'dream' ? '🌙 رویا: ' : '🌩 کابوس: ') + t.dataset.name;
+      nowPlayingText.textContent = (t.dataset.type === 'dream' ? '🌙 ' : '🌩 ') + t.dataset.name;
+      nowPlaying.classList.add('show');
+      paper.classList.remove('glow-dream', 'glow-nightmare');
+      paper.classList.add(t.dataset.type === 'dream' ? 'glow-dream' : 'glow-nightmare');
+      musicPanel.classList.remove('open');
+    });
+  });
+
+  endBtn.addEventListener('click', () => {
+    const text = dreamText.value.trim();
+    if (!text) {
+      dreamText.style.boxShadow = 'inset 0 0 0 1px rgba(180,60,60,0.5)';
+      dreamText.placeholder = 'اول یه چیزی بنویس...';
+      setTimeout(() => dreamText.style.boxShadow = 'none', 900);
+      return;
+    }
+
+    // show ghost text rising & fading, hide textarea
+    ghostText.textContent = text;
+    dreamText.style.opacity = '0';
+    ghostText.classList.add('show');
+    endBtn.style.opacity = '0';
+    endBtn.style.pointerEvents = 'none';
+
+    setTimeout(() => {
+      paper.classList.add('dissolve');
+    }, 500);
+
+    setTimeout(() => {
+      imageReveal.classList.add('show');
+    }, 1400);
+
+    // simulate "AI image generation" delay, then settle
+    setTimeout(() => {
+      flickerBox.classList.add('settled');
+      flickerBox.textContent = '✦ تصویر خواب آماده شد ✦';
+      closeX.classList.add('visible');
+    }, 3600);
+  });
+
+  closeX.addEventListener('click', () => {
+    // In the real site, this returns to the desk / bedroom scene.
+    window.location.href = 'index.html';
+  });
+</script>
+
+</body>
+</html>

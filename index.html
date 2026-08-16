@@ -168,9 +168,31 @@
     font-size: 0.85rem;
     letter-spacing: 1px;
   }
+
+  /* ---------- Blink transition overlay ---------- */
+  .eyelid {
+    position: fixed;
+    left: 0; right: 0;
+    background: #05050a;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .eyelid-top { top: 0; height: 50%; transform: translateY(-100%); }
+  .eyelid-bottom { bottom: 0; height: 50%; transform: translateY(100%); }
+  .eyelid.closing.eyelid-top { animation: closeTop 0.55s ease forwards; }
+  .eyelid.closing.eyelid-bottom { animation: closeBottom 0.55s ease forwards; }
+  @keyframes closeTop { to { transform: translateY(0); } }
+  @keyframes closeBottom { to { transform: translateY(0); } }
+  .eyelid.opening.eyelid-top { animation: openTop 0.6s ease forwards; }
+  .eyelid.opening.eyelid-bottom { animation: openBottom 0.6s ease forwards; }
+  @keyframes openTop { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+  @keyframes openBottom { from { transform: translateY(0); } to { transform: translateY(100%); } }
 </style>
 </head>
 <body>
+
+<div class="eyelid eyelid-top" id="eyelidTop"></div>
+<div class="eyelid eyelid-bottom" id="eyelidBottom"></div>
 
 <div class="scene">
   <div class="hint">روی میز، پنجره، دستگیره‌ی پنجره یا آباژور کلیک کن</div>
@@ -225,8 +247,22 @@
     }
   });
 
+  const eyelidTop = document.getElementById('eyelidTop');
+  const eyelidBottom = document.getElementById('eyelidBottom');
+
+  function blinkTo(url) {
+    eyelidTop.classList.add('closing');
+    eyelidBottom.classList.add('closing');
+    setTimeout(() => { window.location.href = url; }, 520);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    eyelidTop.classList.add('opening');
+    eyelidBottom.classList.add('opening');
+  });
+
   document.getElementById('deskHotspot').addEventListener('click', () => {
-    showToast('→ رفتن به بخش نوشتن خواب (میز)');
+    blinkTo('desk.html');
   });
 
   document.getElementById('windowHotspot').addEventListener('click', () => {
