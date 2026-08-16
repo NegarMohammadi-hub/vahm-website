@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>وهم | اتاق‌خواب</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: #05050a;
+    font-family: Tahoma, sans-serif;
+    overflow: hidden;
+  }
+
+  .scene {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #05050a;
+  }
+
+  .room-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 1400px;
+    aspect-ratio: 1024 / 559;
+  }
+
+  .room-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    filter: brightness(1);
+    transition: filter 0.8s ease;
+  }
+
+  .room-wrap.dark .room-img {
+    filter: brightness(0.15) contrast(1.1);
+  }
+
+  /* Hotspots - positioned as % of the 1024x559 illustration */
+  .hotspot {
+    position: absolute;
+    cursor: pointer;
+    background: transparent;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 12px;
+  }
+
+  .hotspot:hover {
+    background: rgba(255, 220, 150, 0.12);
+    box-shadow: 0 0 25px rgba(255, 220, 150, 0.25) inset;
+  }
+
+  /* Desk area */
+  .hotspot--desk {
+    left: 3%;
+    top: 48%;
+    width: 47%;
+    height: 42%;
+  }
+
+  /* Window glass area */
+  .hotspot--window {
+    left: 58%;
+    top: 5%;
+    width: 26%;
+    height: 55%;
+  }
+
+  /* Window handle/latch (small point on the right edge of window frame) */
+  .hotspot--handle {
+    left: 84%;
+    top: 28%;
+    width: 4%;
+    height: 8%;
+    border-radius: 50%;
+  }
+  .hotspot--handle:hover {
+    background: rgba(150, 200, 255, 0.25);
+    box-shadow: 0 0 20px rgba(150, 200, 255, 0.4) inset;
+  }
+
+  /* Lamp area */
+  .hotspot--lamp {
+    left: 60%;
+    top: 40%;
+    width: 9%;
+    height: 27%;
+    border-radius: 50%;
+  }
+  .hotspot--lamp:hover {
+    background: rgba(255, 230, 180, 0.2);
+    box-shadow: 0 0 30px rgba(255, 230, 180, 0.4) inset;
+  }
+
+  /* Fact card overlay */
+  .fact-card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    max-width: 60%;
+    padding: 28px 34px;
+    background: rgba(20, 18, 14, 0.55);
+    border: 1px solid rgba(230, 210, 170, 0.35);
+    border-radius: 6px;
+    color: #f2e6cf;
+    font-size: 1.05rem;
+    line-height: 1.9;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.9s ease, transform 0.9s ease;
+    backdrop-filter: blur(2px);
+    box-shadow: 0 0 40px rgba(255, 220, 160, 0.15);
+  }
+
+  .fact-card.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .fact-card::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 1px dashed rgba(230, 210, 170, 0.25);
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  /* Toast message for desk/window clicks (temporary placeholder feedback) */
+  .toast {
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(15, 14, 20, 0.85);
+    color: #f2e6cf;
+    padding: 14px 26px;
+    border-radius: 30px;
+    border: 1px solid rgba(230, 210, 170, 0.3);
+    font-size: 0.95rem;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+    letter-spacing: 0.5px;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .hint {
+    position: fixed;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(242, 230, 207, 0.55);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="scene">
+  <div class="hint">روی میز، پنجره، دستگیره‌ی پنجره یا آباژور کلیک کن</div>
+
+  <div class="room-wrap" id="roomWrap">
+    <img class="room-img" src="room.jpg" alt="اتاق‌خواب وهم" />
+
+    <div class="hotspot hotspot--desk" id="deskHotspot" title="میز"></div>
+    <div class="hotspot hotspot--window" id="windowHotspot" title="پنجره"></div>
+    <div class="hotspot hotspot--handle" id="handleHotspot" title="دستگیره‌ی پنجره"></div>
+    <div class="hotspot hotspot--lamp" id="lampHotspot" title="آباژور"></div>
+
+    <div class="fact-card" id="factCard"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const facts = [
+    "در طول یک شب، انسان معمولاً بین ۴ تا ۶ خواب می‌بیند، حتی اگر هیچ‌کدام را به‌خاطر نیاورد.",
+    "بیشتر خواب‌ها در مرحله‌ی REP خواب (حرکت سریع چشم) اتفاق می‌افتند.",
+    "افراد نابینا از بدو تولد هم خواب می‌بینند، اما بدون تصویر بصری، با حس‌های دیگر.",
+    "میانگین یک خواب معمولاً بین ۵ تا ۲۰ دقیقه طول می‌کشد.",
+    "حیوانات هم خواب می‌بینند؛ اسکن مغزی موش‌ها الگوهای مشابه انسان در خواب REM نشان داده.",
+    "حدود ۹۵ درصد خواب‌ها ظرف چند دقیقه پس از بیدار شدن فراموش می‌شوند.",
+    "پدیده‌ی 'خواب شفاف' (Lucid Dream) زمانی‌ست که فرد در حین خواب دیدن، متوجه می‌شود در حال خواب دیدن است."
+  ];
+
+  let lampOn = true;
+  const roomWrap = document.getElementById('roomWrap');
+  const factCard = document.getElementById('factCard');
+  const toast = document.getElementById('toast');
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  document.getElementById('lampHotspot').addEventListener('click', () => {
+    lampOn = !lampOn;
+    if (!lampOn) {
+      roomWrap.classList.add('dark');
+      const fact = facts[Math.floor(Math.random() * facts.length)];
+      factCard.textContent = fact;
+      setTimeout(() => factCard.classList.add('show'), 400);
+    } else {
+      factCard.classList.remove('show');
+      roomWrap.classList.remove('dark');
+    }
+  });
+
+  document.getElementById('deskHotspot').addEventListener('click', () => {
+    showToast('→ رفتن به بخش نوشتن خواب (میز)');
+  });
+
+  document.getElementById('windowHotspot').addEventListener('click', () => {
+    showToast('→ صورت فلکی خودت (کلیک روی شیشه)');
+  });
+
+  document.getElementById('handleHotspot').addEventListener('click', (e) => {
+    e.stopPropagation();
+    showToast('→ فضای عمومی همه‌ی خواب‌ها (دستگیره)');
+  });
+</script>
+
+</body>
+</html>
