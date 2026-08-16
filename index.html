@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>وهم | ورود</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #030305; overflow: hidden; font-family: Tahoma, sans-serif; }
+
+  .scene {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #030305;
+  }
+
+  .frame {
+    position: relative;
+    width: 100%;
+    max-width: 1400px;
+    aspect-ratio: 1024 / 559;
+    overflow: hidden;
+  }
+
+  .bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+  }
+
+  .bg.show { opacity: 1; }
+
+  #imgLying { animation: fadeIn 1.6s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .auth-panel {
+    position: absolute;
+    left: 50%;
+    top: 22%;
+    transform: translate(-50%, 0);
+    width: min(320px, 78vw);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 5;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .auth-panel.hide {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+    pointer-events: none;
+  }
+
+  .brand {
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    color: #f2e6cf;
+    font-size: 1.6rem;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 20px rgba(242,230,207,0.35);
+  }
+
+  input[type="email"] {
+    width: 100%;
+    padding: 11px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(242,230,207,0.35);
+    background: rgba(10, 8, 14, 0.45);
+    color: #f2e6cf;
+    font-size: 0.9rem;
+    text-align: center;
+    outline: none;
+    backdrop-filter: blur(3px);
+  }
+  input[type="email"]::placeholder { color: rgba(242,230,207,0.45); }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 18px;
+    border: 1px solid rgba(242,230,207,0.4);
+    background: transparent;
+    color: #f2e6cf;
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .btn:hover {
+    background: rgba(242,230,207,0.12);
+    box-shadow: 0 0 18px rgba(242,230,207,0.25);
+  }
+  .btn.primary {
+    background: rgba(217,164,65,0.18);
+  }
+  .btn.primary:hover {
+    background: rgba(217,164,65,0.3);
+    box-shadow: 0 0 18px rgba(217,164,65,0.4);
+  }
+
+  .error {
+    color: #e8b4a0;
+    font-size: 0.75rem;
+    min-height: 14px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .error.show { opacity: 1; }
+
+  .eyelid {
+    position: fixed;
+    left: 0; right: 0;
+    background: #030305;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .eyelid-top { top: 0; height: 50%; transform: translateY(-100%); }
+  .eyelid-bottom { bottom: 0; height: 50%; transform: translateY(100%); }
+  .eyelid.closing.eyelid-top { animation: closeTop 0.6s ease forwards; }
+  .eyelid.closing.eyelid-bottom { animation: closeBottom 0.6s ease forwards; }
+  @keyframes closeTop { to { transform: translateY(0); } }
+  @keyframes closeBottom { to { transform: translateY(0); } }
+
+  .falling-drift {
+    animation: drift 2.2s ease-in-out forwards;
+  }
+  @keyframes drift {
+    from { transform: scale(1) translateY(0); }
+    to   { transform: scale(1.06) translateY(-14px); }
+  }
+</style>
+</head>
+<body>
+
+<div class="eyelid eyelid-top" id="eyelidTop"></div>
+<div class="eyelid eyelid-bottom" id="eyelidBottom"></div>
+
+<div class="scene">
+  <div class="frame">
+    <img class="bg show" id="imgLying" src="landing-lying.jpg" alt="فرد خوابیده در آسمان">
+    <img class="bg" id="imgFalling" src="landing-falling.jpg" alt="فرد ایستاده در حال سقوط">
+
+    <div class="auth-panel" id="authPanel">
+      <div class="brand">وهم</div>
+      <input type="email" id="emailInput" placeholder="ایمیلت رو وارد کن">
+      <div class="error" id="errorMsg">لطفاً یه ایمیل معتبر بنویس</div>
+      <div class="btn-row">
+        <button class="btn" id="signupBtn">ثبت‌نام</button>
+        <button class="btn primary" id="loginBtn">ورود</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const eyelidTop = document.getElementById('eyelidTop');
+  const eyelidBottom = document.getElementById('eyelidBottom');
+  const authPanel = document.getElementById('authPanel');
+  const emailInput = document.getElementById('emailInput');
+  const errorMsg = document.getElementById('errorMsg');
+  const imgLying = document.getElementById('imgLying');
+  const imgFalling = document.getElementById('imgFalling');
+
+  function isValidEmail(v) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  function proceed() {
+    const email = emailInput.value.trim();
+    if (!isValidEmail(email)) {
+      errorMsg.classList.add('show');
+      return;
+    }
+    errorMsg.classList.remove('show');
+
+    authPanel.classList.add('hide');
+    imgLying.style.opacity = '0';
+    imgFalling.classList.add('show');
+    imgFalling.classList.add('falling-drift');
+
+    setTimeout(() => {
+      eyelidTop.classList.add('closing');
+      eyelidBottom.classList.add('closing');
+    }, 1900);
+
+    setTimeout(() => {
+      window.location.href = 'room.html';
+    }, 2450);
+  }
+
+  document.getElementById('loginBtn').addEventListener('click', proceed);
+  document.getElementById('signupBtn').addEventListener('click', proceed);
+  emailInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') proceed();
+  });
+</script>
+
+</body>
+</html>
