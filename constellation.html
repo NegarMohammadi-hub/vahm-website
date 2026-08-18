@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>وهم | صورت فلکی</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #030308;
+    overflow: hidden;
+    font-family: Tahoma, sans-serif;
+  }
+
+  .nebula {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 70% at 22% 45%, rgba(150, 110, 40, 0.28) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 65% at 78% 50%, rgba(60, 90, 130, 0.3) 0%, transparent 65%),
+      radial-gradient(ellipse 90% 90% at 50% 50%, rgba(20, 24, 40, 0.5) 0%, rgba(3,3,8,1) 80%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .nebula::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(3px 3px at 12% 30%, rgba(200,170,100,0.12), transparent),
+      radial-gradient(4px 4px at 30% 55%, rgba(200,170,100,0.1), transparent),
+      radial-gradient(3px 3px at 70% 35%, rgba(140,170,210,0.12), transparent),
+      radial-gradient(4px 4px at 85% 60%, rgba(140,170,210,0.1), transparent),
+      radial-gradient(3px 3px at 50% 20%, rgba(230,220,200,0.08), transparent);
+    filter: blur(6px);
+    opacity: 0.8;
+  }
+
+  .viewport {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    perspective: 900px;
+    overflow: hidden;
+  }
+
+  .sky {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.15s ease-out;
+  }
+
+  .dust {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 25%, #fff, transparent),
+      radial-gradient(1px 1px at 35% 65%, #fff, transparent),
+      radial-gradient(1px 1px at 55% 15%, #fff, transparent),
+      radial-gradient(1px 1px at 75% 45%, #fff, transparent),
+      radial-gradient(1px 1px at 85% 75%, #fff, transparent),
+      radial-gradient(1px 1px at 25% 85%, #fff, transparent),
+      radial-gradient(1px 1px at 65% 90%, #fff, transparent),
+      radial-gradient(1px 1px at 45% 40%, #fff, transparent);
+    opacity: 0.5;
+    animation: twinkle 5s ease-in-out infinite alternate;
+    transform: translateZ(-300px);
+  }
+  @keyframes twinkle { from { opacity: 0.25; } to { opacity: 0.6; } }
+
+  .star-main {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    transform-style: preserve-3d;
+  }
+
+  .star-shape {
+    width: 100%;
+    height: 100%;
+    clip-path: polygon(50% 0%, 95% 35%, 80% 100%, 20% 100%, 5% 35%);
+    background: radial-gradient(circle, #fff 0%, #f2e6cf 40%, #d9a441 100%);
+    box-shadow: 0 0 14px 4px rgba(217,164,65,0.6);
+    transition: box-shadow 0.4s ease, transform 0.4s ease;
+  }
+
+  .star-main.nightmare .star-shape {
+    background: radial-gradient(circle, #fff 0%, #dce6f2 40%, #6b8cae 100%);
+    box-shadow: 0 0 14px 4px rgba(107,140,174,0.6);
+  }
+
+  .star-main.near .star-shape {
+    transform: scale(1.4);
+  }
+  .star-main.dream.near .star-shape {
+    box-shadow: 0 0 34px 12px rgba(217,164,65,0.85);
+  }
+  .star-main.nightmare.near .star-shape {
+    box-shadow: 0 0 34px 12px rgba(107,140,174,0.85);
+  }
+
+  .star-branch {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: radial-gradient(circle, #fff 0%, #d9a441 100%);
+    box-shadow: 0 0 8px 2px rgba(217,164,65,0.55);
+    transition: box-shadow 0.4s ease, transform 0.4s ease;
+  }
+  .star-branch.nightmare {
+    background: radial-gradient(circle, #fff 0%, #6b8cae 100%);
+    box-shadow: 0 0 8px 2px rgba(107,140,174,0.55);
+  }
+  .star-branch.near { transform: scale(1.8); }
+
+  .link {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(217,164,65,0.35), rgba(217,164,65,0.05));
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+  .link.nightmare {
+    background: linear-gradient(90deg, rgba(107,140,174,0.35), rgba(107,140,174,0.05));
+  }
+
+  .preview-card {
+    position: absolute;
+    top: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    width: 150px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    text-align: center;
+  }
+  .star-main.near .preview-card {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .preview-card img {
+    width: 100%;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    filter: grayscale(1) contrast(1.05);
+  }
+
+  .preview-card p {
+    margin-top: 6px;
+    font-size: 0.68rem;
+    color: #e8dfc8;
+    line-height: 1.5;
+    background: rgba(5,5,10,0.55);
+    padding: 4px 6px;
+    border-radius: 4px;
+  }
+
+  .preview-card .note {
+    font-size: 0.65rem;
+    color: rgba(217,164,65,0.85);
+    margin-top: 3px;
+  }
+  .star-main.nightmare .preview-card .note { color: rgba(107,140,174,0.9); }
+
+  .branch-preview {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    width: 110px;
+    font-size: 0.62rem;
+    color: #d8cfb8;
+    background: rgba(5,5,10,0.6);
+    padding: 4px 6px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    text-align: center;
+  }
+  .star-branch.near .branch-preview {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .hint {
+    position: fixed;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(230, 220, 200, 0.5);
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    z-index: 5;
+  }
+
+  .legend {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 18px;
+    font-size: 0.72rem;
+    color: rgba(230,220,200,0.55);
+    z-index: 5;
+  }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend i { width: 9px; height: 9px; display: inline-block; }
+  .legend .p1 { background: #d9a441; clip-path: polygon(50% 0%, 95% 35%, 80% 100%, 20% 100%, 5% 35%); }
+  .legend .p2 { background: #6b8cae; clip-path: polygon(50% 0%, 95% 35%, 80% 100%, 20% 100%, 5% 35%); }
+  .legend .p3 { background: #d9a441; border-radius: 50%; width: 6px; height: 6px; }
+</style>
+</head>
+<body>
+
+<div class="hint">موس رو حرکت بده تا آسمون بچرخه، نزدیک ستاره‌ها شو</div>
+
+<div class="viewport" id="viewport">
+  <div class="nebula"></div>
+  <div class="sky" id="sky">
+    <div class="dust"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><i class="p1"></i> خواب خودم (رویا)</span>
+  <span><i class="p2"></i> خواب خودم (کابوس)</span>
+  <span><i class="p3"></i> ادامه‌ی دیگران</span>
+</div>
+
+<script>
+  const sky = document.getElementById('sky');
+  const viewport = document.getElementById('viewport');
+
+  const placeholderImg = (hue) =>
+    `data:image/svg+xml;utf8,${encodeURIComponent(`
+      <svg xmlns='http://www.w3.org/2000/svg' width='200' height='140'>
+        <rect width='100%' height='100%' fill='hsl(${hue},15%,20%)'/>
+        <circle cx='100' cy='60' r='30' fill='hsl(${hue},20%,55%)' opacity='0.5'/>
+      </svg>`)}`;
+
+  const mainDreams = [
+    { x: 20, y: 30, z: -60, type: 'dream', text: 'تو یه جنگل مه‌آلود قدم می‌زدم و صدای زنگی از دور می‌اومد...' },
+    { x: 55, y: 45, z: -120, type: 'nightmare', text: 'در یه راهروی بی‌انتها بودم که درها یکی‌یکی بسته می‌شدن...' },
+    { x: 75, y: 25, z: -40, type: 'dream', text: 'روی آب دریا راه می‌رفتم، انگار سطحش جامد شده بود...' },
+    { x: 35, y: 65, z: -90, type: 'dream', text: 'یه پرنده‌ی بزرگ منو با خودش تا بالای ابرها برد...' },
+    { x: 65, y: 70, z: -150, type: 'nightmare', text: 'صدای قدم‌هایی پشت سرم می‌اومد ولی هیچکس نبود...' },
+  ];
+
+  const branches = [
+    { parentIndex: 0, offX: 6, offY: -5, text: 'ادامه: بعد از زنگ، یه در چوبی پیدا کردم...' },
+    { parentIndex: 0, offX: -5, offY: 6, text: 'ادامه: زنگ به یه ساعت قدیمی وصل بود...' },
+    { parentIndex: 2, offX: 5, offY: 5, text: 'ادامه: آب یهو شکست و افتادم پایین...' },
+    { parentIndex: 4, offX: -6, offY: -4, text: 'ادامه: قدم‌ها متعلق به خودم از آینده بود...' },
+  ];
+
+  function pct(v) { return v + '%'; }
+
+  const starEls = [];
+
+  mainDreams.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'star-main ' + d.type;
+    el.style.left = pct(d.x);
+    el.style.top = pct(d.y);
+    el.style.transform = `translateZ(${d.z}px)`;
+    el.innerHTML = `
+      <div class="star-shape"></div>
+      <div class="preview-card">
+        <img src="${placeholderImg(d.type === 'dream' ? 42 : 210)}" alt="پیش‌نمایش خواب">
+        <p>${d.text.slice(0, 40)}...</p>
+        <div class="note">♪ در حال پخش</div>
+      </div>
+    `;
+    sky.appendChild(el);
+    starEls.push({ el, x: d.x, y: d.y, z: d.z, type: 'main', dtype: d.type });
+  });
+
+  branches.forEach(b => {
+    const parent = mainDreams[b.parentIndex];
+    const x = parent.x + b.offX;
+    const y = parent.y + b.offY;
+    const z = parent.z + 10;
+
+    const el = document.createElement('div');
+    el.className = 'star-branch ' + parent.type;
+    el.style.left = pct(x);
+    el.style.top = pct(y);
+    el.style.transform = `translateZ(${z}px)`;
+    el.innerHTML = `<div class="branch-preview">${b.text}</div>`;
+    sky.appendChild(el);
+    starEls.push({ el, x, y, z, type: 'branch', dtype: parent.type });
+  });
+
+  let targetRX = 0, targetRY = 0, curRX = 0, curRY = 0;
+  let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+  window.addEventListener('mousemove', (e) => {
+    const nx = (e.clientX / window.innerWidth) - 0.5;
+    const ny = (e.clientY / window.innerHeight) - 0.5;
+    targetRY = nx * 22;
+    targetRX = -ny * 14;
+    lastMouse.x = e.clientX;
+    lastMouse.y = e.clientY;
+  });
+
+  window.addEventListener('touchmove', (e) => {
+    if (e.touches[0]) {
+      lastMouse.x = e.touches[0].clientX;
+      lastMouse.y = e.touches[0].clientY;
+      const nx = (e.touches[0].clientX / window.innerWidth) - 0.5;
+      const ny = (e.touches[0].clientY / window.innerHeight) - 0.5;
+      targetRY = nx * 22;
+      targetRX = -ny * 14;
+    }
+  });
+
+  function animate() {
+    curRX += (targetRX - curRX) * 0.06;
+    curRY += (targetRY - curRY) * 0.06;
+    sky.style.transform = `rotateX(${curRX}deg) rotateY(${curRY}deg)`;
+
+    starEls.forEach(s => {
+      const b = s.el.getBoundingClientRect();
+      const cx = b.left + b.width / 2;
+      const cy = b.top + b.height / 2;
+      const dx = cx - lastMouse.x;
+      const dy = cy - lastMouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const threshold = s.type === 'main' ? 90 : 55;
+      if (dist < threshold) {
+        s.el.classList.add('near');
+      } else {
+        s.el.classList.remove('near');
+      }
+    });
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+</script>
+
+</body>
+</html>
