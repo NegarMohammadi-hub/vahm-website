@@ -44,7 +44,6 @@
     filter: brightness(0.15) contrast(1.1);
   }
 
-  /* Hotspots - positioned as % of the 1024x559 illustration */
   .hotspot {
     position: absolute;
     cursor: pointer;
@@ -58,7 +57,6 @@
     box-shadow: 0 0 25px rgba(255, 220, 150, 0.25) inset;
   }
 
-  /* Desk area */
   .hotspot--desk {
     left: 3%;
     top: 48%;
@@ -66,7 +64,6 @@
     height: 42%;
   }
 
-  /* Window glass area */
   .hotspot--window {
     left: 58%;
     top: 5%;
@@ -74,20 +71,22 @@
     height: 55%;
   }
 
-  /* Window handle/latch (small point on the right edge of window frame) */
-  .hotspot--handle {
-    left: 84%;
-    top: 28%;
-    width: 4%;
-    height: 8%;
-    border-radius: 50%;
+  .handle-icon {
+    position: absolute;
+    left: 82%;
+    top: 30%;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    z-index: 4;
+    transition: transform 0.25s ease, filter 0.25s ease;
   }
-  .hotspot--handle:hover {
-    background: rgba(150, 200, 255, 0.25);
-    box-shadow: 0 0 20px rgba(150, 200, 255, 0.4) inset;
+  .handle-icon:hover {
+    transform: scale(1.25);
+    filter: drop-shadow(0 0 10px rgba(150,200,255,0.7));
   }
+  .handle-icon svg { width: 100%; height: 100%; }
 
-  /* Lamp area */
   .hotspot--lamp {
     left: 60%;
     top: 40%;
@@ -100,7 +99,6 @@
     box-shadow: 0 0 30px rgba(255, 230, 180, 0.4) inset;
   }
 
-  /* Fact card overlay */
   .fact-card {
     position: absolute;
     left: 50%;
@@ -136,7 +134,6 @@
     pointer-events: none;
   }
 
-  /* Toast message for desk/window clicks (temporary placeholder feedback) */
   .toast {
     position: fixed;
     bottom: 40px;
@@ -169,7 +166,6 @@
     letter-spacing: 1px;
   }
 
-  /* ---------- Blink transition overlay ---------- */
   .eyelid {
     position: fixed;
     left: 0; right: 0;
@@ -202,7 +198,13 @@
 
     <div class="hotspot hotspot--desk" id="deskHotspot" title="میز"></div>
     <div class="hotspot hotspot--window" id="windowHotspot" title="پنجره"></div>
-    <div class="hotspot hotspot--handle" id="handleHotspot" title="دستگیره‌ی پنجره"></div>
+    <div class="handle-icon" id="handleHotspot" title="دستگیره‌ی پنجره">
+      <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="10" fill="none" stroke="#cbb98a" stroke-width="2.2"/>
+        <circle cx="20" cy="20" r="3" fill="#cbb98a"/>
+        <line x1="20" y1="10" x2="20" y2="4" stroke="#cbb98a" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+    </div>
     <div class="hotspot hotspot--lamp" id="lampHotspot" title="آباژور"></div>
 
     <div class="fact-card" id="factCard"></div>
@@ -266,7 +268,7 @@
   });
 
   document.getElementById('windowHotspot').addEventListener('click', () => {
-    showToast('→ صورت فلکی خودت (کلیک روی شیشه)');
+    blinkTo('constellation.html');
   });
 
   document.getElementById('handleHotspot').addEventListener('click', (e) => {
