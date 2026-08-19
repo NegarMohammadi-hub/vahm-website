@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>وهم | فضای عمومی</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #030308;
+    overflow: hidden;
+    font-family: Tahoma, sans-serif;
+  }
+
+  .nebula {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 65% 75% at 20% 50%, rgba(150, 110, 40, 0.22) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 70% at 80% 50%, rgba(50, 80, 120, 0.28) 0%, transparent 65%),
+      radial-gradient(ellipse 95% 95% at 50% 50%, rgba(18, 22, 36, 0.5) 0%, rgba(3,3,8,1) 82%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .viewport {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    perspective: 950px;
+    overflow: hidden;
+  }
+
+  .sky {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.15s ease-out;
+  }
+
+  .dust {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 20%, #fff, transparent),
+      radial-gradient(1px 1px at 40% 60%, #fff, transparent),
+      radial-gradient(1px 1px at 60% 30%, #fff, transparent),
+      radial-gradient(1px 1px at 80% 70%, #fff, transparent),
+      radial-gradient(1px 1px at 30% 80%, #fff, transparent),
+      radial-gradient(1px 1px at 70% 15%, #fff, transparent);
+    opacity: 0.35;
+    animation: twinkle 6s ease-in-out infinite alternate;
+    transform: translateZ(-350px);
+  }
+  @keyframes twinkle { from { opacity: 0.2; } to { opacity: 0.5; } }
+
+  .cloud {
+    position: absolute;
+    width: 130px;
+    height: 78px;
+    cursor: pointer;
+    transform-style: preserve-3d;
+  }
+
+  .cloud-shape {
+    width: 100%;
+    height: 100%;
+    border-radius: 45% 55% 50% 50% / 55% 50% 50% 45%;
+    background: radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.9), rgba(230,215,190,0.55) 55%, rgba(200,180,150,0.25) 100%);
+    box-shadow: 0 0 30px 8px rgba(217,164,65,0.28);
+    filter: blur(0.4px);
+    transition: box-shadow 0.5s ease, transform 0.5s ease, filter 0.5s ease;
+  }
+
+  .cloud.nightmare .cloud-shape {
+    background: radial-gradient(ellipse at 40% 35%, rgba(220,230,240,0.75), rgba(120,140,165,0.5) 55%, rgba(70,90,115,0.3) 100%);
+    box-shadow: 0 0 30px 8px rgba(107,140,174,0.3);
+  }
+
+  .cloud.near .cloud-shape {
+    transform: scale(1.18);
+    filter: blur(0px);
+  }
+  .cloud.dream.near .cloud-shape {
+    box-shadow: 0 0 55px 16px rgba(217,164,65,0.55);
+  }
+  .cloud.nightmare.near .cloud-shape {
+    box-shadow: 0 0 55px 16px rgba(107,140,174,0.55);
+  }
+
+  .cloud-preview {
+    position: absolute;
+    top: 84px;
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    width: 160px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    text-align: center;
+  }
+  .cloud.near .cloud-preview {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .cloud-preview img {
+    width: 100%;
+    height: 88px;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    filter: grayscale(1) contrast(1.05);
+  }
+
+  .cloud-preview p {
+    margin-top: 6px;
+    font-size: 0.68rem;
+    color: #e8dfc8;
+    line-height: 1.5;
+    background: rgba(5,5,10,0.55);
+    padding: 4px 6px;
+    border-radius: 4px;
+  }
+
+  .hint {
+    position: fixed;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(230, 220, 200, 0.5);
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    z-index: 5;
+  }
+
+  .legend {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 22px;
+    font-size: 0.72rem;
+    color: rgba(230,220,200,0.55);
+    z-index: 5;
+  }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend i {
+    width: 14px; height: 9px;
+    display: inline-block;
+    border-radius: 45% 55% 50% 50% / 55% 50% 50% 45%;
+  }
+  .legend .c1 { background: #d9a441; }
+  .legend .c2 { background: #6b8cae; }
+
+  .back-window {
+    position: fixed;
+    top: 22px;
+    right: 26px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    z-index: 6;
+    opacity: 0.75;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .back-window:hover { opacity: 1; transform: scale(1.1); }
+
+  .eyelid {
+    position: fixed;
+    left: 0; right: 0;
+    background: #030308;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .eyelid-top { top: 0; height: 50%; transform: translateY(-100%); }
+  .eyelid-bottom { bottom: 0; height: 50%; transform: translateY(100%); }
+  .eyelid.closing.eyelid-top { animation: closeTop 0.55s ease forwards; }
+  .eyelid.closing.eyelid-bottom { animation: closeBottom 0.55s ease forwards; }
+  @keyframes closeTop { to { transform: translateY(0); } }
+  @keyframes closeBottom { to { transform: translateY(0); } }
+  .eyelid.opening.eyelid-top { animation: openTop 0.6s ease forwards; }
+  .eyelid.opening.eyelid-bottom { animation: openBottom 0.6s ease forwards; }
+  @keyframes openTop { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+  @keyframes openBottom { from { transform: translateY(0); } to { transform: translateY(100%); } }
+</style>
+</head>
+<body>
+
+<div class="eyelid eyelid-top" id="eyelidTop"></div>
+<div class="eyelid eyelid-bottom" id="eyelidBottom"></div>
+
+<div class="hint">موس رو حرکت بده تا بچرخی، نزدیک ابرها شو</div>
+
+<div class="back-window" id="backWindow" title="برگشت به اتاق">
+  <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+    <rect x="6" y="4" width="28" height="32" rx="2" fill="none" stroke="#cbb98a" stroke-width="2"/>
+    <line x1="20" y1="4" x2="20" y2="36" stroke="#cbb98a" stroke-width="1.6"/>
+    <line x1="6" y1="20" x2="34" y2="20" stroke="#cbb98a" stroke-width="1.6"/>
+  </svg>
+</div>
+
+<div class="viewport" id="viewport">
+  <div class="nebula"></div>
+  <div class="sky" id="sky">
+    <div class="dust"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><i class="c1"></i> رویا</span>
+  <span><i class="c2"></i> کابوس</span>
+</div>
+
+<script>
+  const sky = document.getElementById('sky');
+  const viewport = document.getElementById('viewport');
+  const eyelidTop = document.getElementById('eyelidTop');
+  const eyelidBottom = document.getElementById('eyelidBottom');
+
+  function blinkTo(url) {
+    eyelidTop.classList.add('closing');
+    eyelidBottom.classList.add('closing');
+    setTimeout(() => { window.location.href = url; }, 520);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    eyelidTop.classList.add('opening');
+    eyelidBottom.classList.add('opening');
+  });
+
+  document.getElementById('backWindow').addEventListener('click', () => {
+    blinkTo('room.html');
+  });
+
+  const placeholderImg = (hue) =>
+    `data:image/svg+xml;utf8,${encodeURIComponent(`
+      <svg xmlns='http://www.w3.org/2000/svg' width='200' height='140'>
+        <rect width='100%' height='100%' fill='hsl(${hue},15%,20%)'/>
+        <circle cx='100' cy='60' r='30' fill='hsl(${hue},20%,55%)' opacity='0.5'/>
+      </svg>`)}`;
+
+  const dreams = [
+    { x: 12, y: 30, z: -50, type: 'dream', text: 'یه قایق کاغذی منو از رودخونه‌ی شهر رد کرد...' },
+    { x: 28, y: 55, z: -110, type: 'dream', text: 'صدای پیانو از خونه‌ای میومد که دیگه وجود نداشت...' },
+    { x: 42, y: 20, z: -70, type: 'dream', text: 'همه‌ی درختای شهر یهو شیشه‌ای شدن...' },
+    { x: 58, y: 65, z: -140, type: 'nightmare', text: 'تو یه آسانسور بودم که هیچ‌وقت به طبقه نمی‌رسید...' },
+    { x: 70, y: 35, z: -60, type: 'nightmare', text: 'کسی صدام میزد ولی صداش از داخل دیوار بود...' },
+    { x: 84, y: 55, z: -100, type: 'nightmare', text: 'ساعت‌ها همه معکوس می‌چرخیدن...' },
+    { x: 20, y: 75, z: -180, type: 'dream', text: 'رو ابرا دراز کشیده بودم و شهر زیر پام بود...' },
+    { x: 78, y: 78, z: -170, type: 'nightmare', text: 'در خونه‌مون به یه راهروی غریبه باز شد...' },
+  ];
+
+  function pct(v) { return v + '%'; }
+
+  const cloudEls = [];
+
+  dreams.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cloud ' + d.type;
+    el.style.left = pct(d.x);
+    el.style.top = pct(d.y);
+    el.style.transform = `translateZ(${d.z}px)`;
+    el.innerHTML = `
+      <div class="cloud-shape"></div>
+      <div class="cloud-preview">
+        <img src="${placeholderImg(d.type === 'dream' ? 42 : 210)}" alt="پیش‌نمایش خواب">
+        <p>${d.text.slice(0, 42)}...</p>
+      </div>
+    `;
+    el.addEventListener('click', () => {
+      blinkTo('write.html');
+    });
+    sky.appendChild(el);
+    cloudEls.push({ el, type: d.type });
+  });
+
+  let targetRX = 0, targetRY = 0, curRX = 0, curRY = 0;
+  let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+  window.addEventListener('mousemove', (e) => {
+    const nx = (e.clientX / window.innerWidth) - 0.5;
+    const ny = (e.clientY / window.innerHeight) - 0.5;
+    targetRY = nx * 26;
+    targetRX = -ny * 16;
+    lastMouse.x = e.clientX;
+    lastMouse.y = e.clientY;
+  });
+
+  window.addEventListener('touchmove', (e) => {
+    if (e.touches[0]) {
+      lastMouse.x = e.touches[0].clientX;
+      lastMouse.y = e.touches[0].clientY;
+      const nx = (e.touches[0].clientX / window.innerWidth) - 0.5;
+      const ny = (e.touches[0].clientY / window.innerHeight) - 0.5;
+      targetRY = nx * 26;
+      targetRX = -ny * 16;
+    }
+  });
+
+  function animate() {
+    curRX += (targetRX - curRX) * 0.06;
+    curRY += (targetRY - curRY) * 0.06;
+    sky.style.transform = `rotateX(${curRX}deg) rotateY(${curRY}deg)`;
+
+    cloudEls.forEach(c => {
+      const b = c.el.getBoundingClientRect();
+      const cx = b.left + b.width / 2;
+      const cy = b.top + b.height / 2;
+      const dx = cx - lastMouse.x;
+      const dy = cy - lastMouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 100) {
+        c.el.classList.add('near');
+      } else {
+        c.el.classList.remove('near');
+      }
+    });
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+</script>
+
+</body>
+</html>
