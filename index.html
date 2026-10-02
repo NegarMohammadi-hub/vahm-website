@@ -38,7 +38,11 @@
 
   .bg.show { opacity: 1; }
 
-  #imgLying { animation: fadeIn 1.6s ease forwards; }
+  #vidLying {
+    opacity: 0;
+    animation: fadeIn 1.6s ease forwards;
+    pointer-events: none;
+  }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   .auth-panel {
@@ -156,7 +160,10 @@
 
 <div class="scene">
   <div class="frame">
-    <img class="bg show" id="imgLying" src="landing-lying.jpg" alt="فرد خوابیده در آسمان">
+    <video class="bg show" id="vidLying"
+           src="landing-lying.mp4" poster="landing-lying.jpg"
+           autoplay muted loop playsinline preload="auto"
+           disablepictureinpicture aria-label="فرد خوابیده در آسمان"></video>
     <img class="bg" id="imgFalling" src="landing-falling.jpg" alt="فرد ایستاده در حال سقوط">
 
     <div class="auth-panel" id="authPanel">
@@ -177,8 +184,15 @@
   const authPanel = document.getElementById('authPanel');
   const emailInput = document.getElementById('emailInput');
   const errorMsg = document.getElementById('errorMsg');
-  const imgLying = document.getElementById('imgLying');
+  const vidLying = document.getElementById('vidLying');
   const imgFalling = document.getElementById('imgFalling');
+
+  // Some browsers block autoplay; retry on first interaction
+  vidLying.play().catch(() => {
+    const kick = () => { vidLying.play(); };
+    window.addEventListener('pointerdown', kick, { once: true });
+    window.addEventListener('keydown', kick, { once: true });
+  });
 
   function isValidEmail(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -193,7 +207,8 @@
     errorMsg.classList.remove('show');
 
     authPanel.classList.add('hide');
-    imgLying.style.opacity = '0';
+    vidLying.style.opacity = '0';
+    vidLying.style.animation = 'none';
     imgFalling.classList.add('show');
     imgFalling.classList.add('falling-drift');
 
