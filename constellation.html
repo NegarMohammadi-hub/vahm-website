@@ -219,6 +219,75 @@
   .eyelid.opening.eyelid-bottom { animation: openBottom 0.6s ease forwards; }
   @keyframes openTop { from { transform: translateY(0); } to { transform: translateY(-100%); } }
   @keyframes openBottom { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
+  /* ---------- Focus mode (zoomed in on one star) ---------- */
+  canvas#sky { transition: opacity 1.4s ease; }
+  body.focus canvas#sky { opacity: .55; }
+  body.focus .hint, body.focus .legend, body.focus .gauge,
+  body.focus .back-window, body.focus .move-btns { opacity: 0 !important; pointer-events: none; }
+
+  .star-nebula {
+    position: fixed; left: 0; top: 0;
+    width: 120vmax; height: 120vmax; margin: -60vmax 0 0 -60vmax;
+    z-index: 0; pointer-events: none; opacity: 0;
+    mix-blend-mode: screen; will-change: transform, opacity;
+  }
+  .sn {
+    position: absolute; inset: 0; border-radius: 50%;
+    filter: blur(22px) hue-rotate(var(--hue, 0deg));
+    -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 66%);
+            mask-image: radial-gradient(circle, #000 18%, transparent 66%);
+  }
+  .sn.a {
+    background:
+      radial-gradient(circle at 62% 40%, var(--c1) 0, transparent 26%),
+      radial-gradient(circle at 34% 62%, var(--c2) 0, transparent 28%),
+      radial-gradient(circle at 56% 72%, var(--c3) 0, transparent 22%),
+      radial-gradient(circle at 50% 50%, var(--c1) 0, transparent 50%);
+    animation: snSpin 80s linear infinite;
+  }
+  .sn.b {
+    background:
+      radial-gradient(circle at 30% 34%, var(--c2) 0, transparent 24%),
+      radial-gradient(circle at 70% 60%, var(--c3) 0, transparent 26%),
+      radial-gradient(circle at 46% 28%, var(--c1) 0, transparent 20%);
+    animation: snSpin 130s linear infinite reverse;
+  }
+  @keyframes snSpin { to { transform: rotate(360deg); } }
+
+  .dream-panel {
+    position: fixed; top: 0; bottom: 0; right: 0;
+    width: min(480px, 44vw); z-index: 8; overflow-y: auto;
+    padding: 16vh 38px 30vh 46px; text-align: right;
+    opacity: 0; pointer-events: none; transition: opacity .8s ease;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(transparent 0, #000 12%, #000 82%, transparent 100%);
+            mask-image: linear-gradient(transparent 0, #000 12%, #000 82%, transparent 100%);
+  }
+  .dream-panel::-webkit-scrollbar { display: none; }
+  .dream-panel.show { opacity: 1; pointer-events: auto; }
+  .dream-panel .tag { font-size: .74rem; letter-spacing: 1px; margin-bottom: 18px; color: rgba(217,164,65,.9); }
+  .dream-panel .ln {
+    color: #f2e6cf; font-size: 1.08rem; line-height: 2.1; margin-bottom: 10px;
+    text-shadow: 0 0 18px rgba(0,0,0,.7);
+    opacity: 0; transform: translateY(14px); filter: blur(4px);
+    transition: opacity 1.1s ease, transform 1.1s ease, filter 1.1s ease;
+  }
+  .dream-panel .ln.in { opacity: 1; transform: none; filter: none; }
+  @media (max-aspect-ratio: 1/1) {
+    .dream-panel { width: 100vw; top: 46vh; padding: 6vh 28px 24vh; }
+  }
+
+  .back-sky {
+    position: fixed; top: 22px; left: 26px; z-index: 9;
+    padding: 10px 22px; border-radius: 22px;
+    border: 1px solid rgba(242,230,207,.4); background: rgba(10,8,14,.5);
+    backdrop-filter: blur(3px); color: #f2e6cf; font-size: .88rem; cursor: pointer;
+    font-family: Tahoma, sans-serif;
+    opacity: 0; pointer-events: none; transition: opacity .6s ease, box-shadow .3s ease;
+  }
+  .back-sky.show { opacity: 1; pointer-events: auto; }
+  .back-sky:hover { box-shadow: 0 0 18px rgba(242,230,207,.3); }
 </style>
 </head>
 <body>
@@ -227,6 +296,7 @@
 <div class="eyelid eyelid-bottom" id="eyelidBottom"></div>
 
 <div class="nebula" id="nebula"></div>
+<div class="star-nebula" id="starNebula"><div class="sn a"></div><div class="sn b"></div></div>
 <canvas id="sky"></canvas>
 <div class="edge" id="edge"></div>
 <div class="edge-msg" id="edgeMsg">به لبه‌ی آسمون رسیدی، از اینجا جلوتر راهی نیست</div>
@@ -263,6 +333,9 @@
   <div class="note">♪ در حال پخش</div>
 </div>
 
+<div class="dream-panel" id="dreamPanel"></div>
+<button class="back-sky" id="backSky">↺ بازگشت به منظومه</button>
+
 <script src="vahm-music.js"></script>
 <script>
   VahmMusic.resume(3);
@@ -291,7 +364,7 @@
     eyelidBottom.classList.add('opening');
   });
   document.getElementById('backWindow').addEventListener('click', () => blinkTo('room.html'));
-  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') blinkTo('room.html'); });
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (mode === 'locked') backToSky(); else if (mode === 'free') blinkTo('room.html'); } });
 
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
   const hint = document.getElementById('hint');
@@ -548,6 +621,7 @@
   document.addEventListener('mouseleave', () => { mouse.active = false; mouse.px = mouse.py = -9999; });
 
   canvas.addEventListener('pointerdown', (e) => {
+    if (mode !== 'free') return;
     dragging = true; lastDX = e.clientX; lastDY = e.clientY;
     canvas.classList.add('dragging');
     canvas.setPointerCapture(e.pointerId);
@@ -564,6 +638,7 @@
   canvas.addEventListener('pointercancel', endDrag);
 
   window.addEventListener('wheel', (e) => {
+    if (mode !== 'free') return;      // let the text panel scroll normally
     e.preventDefault();
     let dy = e.deltaY;
     if (e.deltaMode === 1) dy *= 16;
@@ -616,6 +691,190 @@
   }
 
   /* =====================================================================
+     Focus mode: click a star -> fly in -> lock
+     ===================================================================== */
+  let mode = 'free';          // free | flyIn | locked | orbit | flyOut
+  let target = null, tween = null;
+  const body = document.body;
+  const starNeb = document.getElementById('starNebula');
+  const panel = document.getElementById('dreamPanel');
+  const backSky = document.getElementById('backSky');
+  const ease = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const angD = (a, b) => ((b - a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+  const PAL = {
+    dream:     ['rgba(217,164,65,.5)', 'rgba(214,120,110,.38)', 'rgba(120,175,165,.32)'],
+    nightmare: ['rgba(107,140,174,.5)', 'rgba(135,100,185,.38)', 'rgba(70,155,150,.3)'],
+  };
+
+  // yaw/pitch that look from `from` at `to`; off=1 pushes the star to the left side (text is on the right)
+  function aim(from, to, off) {
+    const dx = to[0] - from[0], dy = to[1] - from[1], dz = to[2] - from[2];
+    const L = Math.hypot(dx, dy, dz) || 1;
+    let y = Math.atan2(dx, -dz), p = Math.asin(dy / L);
+    if (off) {
+      if (W >= H) y += off * Math.atan(0.22 * W / focal);
+      else p -= off * Math.atan(0.25 * H / focal);
+    }
+    return [y, p];
+  }
+
+  function stepTween(now) {
+    if (!tween) return;
+    const k = Math.min(1, (now - tween.t0) / tween.dur);
+    tween.update(ease(k));
+    if (k >= 1) { const t = tween; tween = null; if (t.done) t.done(); }
+  }
+
+  function startFocus(s) {
+    if (mode !== 'free') return;
+    mode = 'flyIn'; target = s; focusStar = null;
+    card.classList.remove('show');
+    const pal = PAL[s.type], n = stars.indexOf(s);
+    starNeb.style.setProperty('--c1', pal[0]);
+    starNeb.style.setProperty('--c2', pal[1]);
+    starNeb.style.setProperty('--c3', pal[2]);
+    starNeb.style.setProperty('--hue', ((n * 47) % 70 - 35) + 'deg');
+    body.classList.add('focus');
+    vel.x = vel.y = vel.z = 0; yawVel = pitchVel = 0;
+
+    const from = [cam.x, cam.y, cam.z];
+    const d = [s.p[0] - cam.x, s.p[1] - cam.y, s.p[2] - cam.z];
+    const L = Math.hypot(d[0], d[1], d[2]) || 1;
+    const stand = s.kind === 'main' ? 7 : 4.5;
+    const to = [s.p[0] - d[0] / L * stand, s.p[1] - d[1] / L * stand, s.p[2] - d[2] / L * stand];
+    const a1 = aim(to, s.p, 1);
+    const y0 = yaw, p0 = pitch, dy = angD(y0, a1[0]);
+    tween = {
+      t0: performance.now(), dur: Math.min(3600, 1800 + L * 30),
+      update(e) {
+        cam.x = lerp(from[0], to[0], e); cam.y = lerp(from[1], to[1], e); cam.z = lerp(from[2], to[2], e);
+        yaw = y0 + dy * e; pitch = lerp(p0, a1[1], e);
+        starNeb.style.opacity = e;
+      },
+      done() {
+        mode = 'locked';
+        backSky.classList.add('show');
+        openPanel(s);
+      },
+    };
+  }
+
+  // click (not drag) on a star that has a dream attached
+  let downX = 0, downY = 0;
+  canvas.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; });
+  canvas.addEventListener('pointerup', (e) => {
+    if (mode !== 'free' || Math.hypot(e.clientX - downX, e.clientY - downY) > 6) return;
+    let best = null, bs = 1;
+    stars.forEach((s, i) => {
+      if (s.kind === 'ambient') return;
+      const P = proj[i];
+      if (P.z < 1.2) return;
+      const thr = Math.max(34, Math.min(52, P.rad) * 1.2);
+      const sc = Math.hypot(P.x - e.clientX, P.y - e.clientY) / thr;
+      if (sc < bs) { bs = sc; best = s; }
+    });
+    if (best) startFocus(best);
+  });
+
+  /* =====================================================================
+     Dream text: appears line by line; long texts scroll and keep revealing
+     ===================================================================== */
+  let revealTimer = null, lines = [], nextLine = 0;
+
+  function openPanel(s) {
+    panel.innerHTML = ''; panel.scrollTop = 0;
+    const tag = document.createElement('div');
+    tag.className = 'tag';
+    tag.textContent = s.type === 'dream' ? '🌙 رویا' : '🌩 کابوس';
+    if (s.type === 'nightmare') tag.style.color = 'rgba(130,165,200,.95)';
+    panel.appendChild(tag);
+    // one line per paragraph, long paragraphs are split at sentence ends
+    const parts = s.text.split(/\n+/)
+      .flatMap(l => l.split(/(?<=[.!؟…])\s+/))
+      .map(t => t.trim()).filter(Boolean);
+    lines = parts.map(t => {
+      const d = document.createElement('div');
+      d.className = 'ln'; d.textContent = t;
+      panel.appendChild(d);
+      return d;
+    });
+    nextLine = 0;
+    panel.classList.add('show');
+    clearTimeout(revealTimer);
+    revealTimer = setTimeout(revealNext, 900);
+  }
+
+  function revealNext() {
+    if (mode !== 'locked' || nextLine >= lines.length) return;
+    const el = lines[nextLine];
+    // below the visible area? wait until the person scrolls down to it
+    if (el.offsetTop - panel.scrollTop > panel.clientHeight * 0.82) return;
+    el.classList.add('in');
+    nextLine++;
+    revealTimer = setTimeout(revealNext, 1100);
+  }
+
+  panel.addEventListener('scroll', () => {
+    if (mode === 'locked' && nextLine < lines.length) {
+      clearTimeout(revealTimer);
+      revealTimer = setTimeout(revealNext, 250);
+    }
+  });
+
+  /* =====================================================================
+     Back to the constellation: orbit around the star, then shoot to the centre
+     ===================================================================== */
+  function backToSky() {
+    if (mode !== 'locked') return;
+    mode = 'orbit';
+    clearTimeout(revealTimer);
+    panel.classList.remove('show');
+    backSky.classList.remove('show');
+    const s = target;
+    const c0 = [cam.x - s.p[0], cam.y - s.p[1], cam.z - s.p[2]];
+    const r0 = Math.hypot(c0[0], c0[2]), base = Math.atan2(c0[2], c0[0]), turn = Math.PI * 1.25;
+    tween = {
+      t0: performance.now(), dur: 2400,
+      update(e) {
+        const a = base + turn * e, grow = 1 + 0.7 * e;
+        cam.x = s.p[0] + Math.cos(a) * r0 * grow;
+        cam.z = s.p[2] + Math.sin(a) * r0 * grow;
+        cam.y = s.p[1] + c0[1] * grow;
+        const A = aim([cam.x, cam.y, cam.z], s.p, 1 - e);   // star glides back to the middle of the screen
+        yaw = A[0]; pitch = A[1];
+        starNeb.style.opacity = 1 - 0.5 * e;
+      },
+      done: shootToCenter,
+    };
+  }
+
+  function shootToCenter() {
+    mode = 'flyOut';
+    const from = [cam.x, cam.y, cam.z];
+    const L = Math.hypot(from[0], from[1], from[2]);
+    const a1 = aim(from, [0, 0, 0], 0);          // look along the way we travel
+    const y0 = yaw, p0 = pitch, dy = angD(y0, a1[0]);
+    tween = {
+      t0: performance.now(), dur: Math.min(4200, 1800 + L * 28),
+      update(e) {
+        cam.x = lerp(from[0], 0, e); cam.y = lerp(from[1], 0, e); cam.z = lerp(from[2], 0, e);
+        const turnE = Math.min(1, e * 2.2);       // finish turning early, then just glide
+        yaw = y0 + dy * turnE; pitch = lerp(p0, a1[1], turnE);
+        starNeb.style.opacity = Math.max(0, 0.5 * (1 - e * 2));
+      },
+      done() {
+        mode = 'free'; target = null;
+        starNeb.style.opacity = 0;
+        body.classList.remove('focus');
+        vel.x = vel.y = vel.z = 0;
+      },
+    };
+  }
+
+  backSky.addEventListener('click', backToSky);
+
+  /* =====================================================================
      Main loop
      ===================================================================== */
   const gaugeFill = document.getElementById('gaugeFill');
@@ -633,6 +892,8 @@
     last = now;
     const t = now / 1000;
 
+    let dist = 0;
+    if (mode !== 'free') stepTween(now); else {
     /* ---- turning: the further the mouse is from the centre, the faster we turn ---- */
     let tYaw = 0, tPitch = 0;
     if (mouse.active && !dragging) {
@@ -662,7 +923,7 @@
     vel.x *= damp; vel.y *= damp; vel.z *= damp;
 
     /* ---- the wall: slow down near the edge, and never cross it ---- */
-    let dist = Math.hypot(cam.x, cam.y, cam.z);
+    dist = Math.hypot(cam.x, cam.y, cam.z);
     if (dist > 0.001) {
       const nx = cam.x / dist, ny = cam.y / dist, nz = cam.z / dist;
       const vr = vel.x * nx + vel.y * ny + vel.z * nz;          // speed pointing outward
@@ -681,6 +942,9 @@
       if (vr > 0) { vel.x -= nx * vr; vel.y -= ny * vr; vel.z -= nz * vr; }
       dist = R_MAX;
     }
+
+    }
+    dist = Math.hypot(cam.x, cam.y, cam.z);
 
     /* ---- camera basis ---- */
     const cp = Math.cos(pitch), sp_ = Math.sin(pitch), cy_ = Math.cos(yaw), sy_ = Math.sin(yaw);
@@ -763,7 +1027,7 @@
       const twinkle = 0.82 + 0.18 * Math.sin(t * s.speed + s.phase);
       const depth = Math.max(0.4, Math.min(1, 1.2 - P.z / 170));
       const closeFade = Math.max(0, Math.min(1, (P.z - 0.6) / 2.4));
-      const isNear = s === focusStar;
+      const isNear = s === focusStar || s === target;
       const rad = Math.max(s.kind === 'ambient' ? 1.6 : 3.2, Math.min(52, P.rad)) * (isNear ? 1.35 : 1);
 
       // focus candidate: close enough, and near the mouse pointer or the middle of the screen
@@ -784,7 +1048,7 @@
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
 
-    setFocus(bestFocus === null ? null : stars[bestFocus]);
+    setFocus(mode !== 'free' || bestFocus === null ? null : stars[bestFocus]);
     if (focusStar) {
       const P = proj[idx(focusStar)];
       const rad = Math.min(52, Math.max(3.2, P.rad)) * 1.35 * 1.3;
@@ -800,6 +1064,8 @@
     const edge = Math.max(0, Math.min(1, (dist - R_SOFT) / (R_MAX - R_SOFT)));
     edgeEl.style.opacity = (edge * edge * 0.95).toFixed(3);
     edgeMsg.classList.toggle('show', edge > 0.92);
+
+    if (target) { const P = proj[idx(target)]; starNeb.style.transform = `translate(${P.x.toFixed(1)}px, ${P.y.toFixed(1)}px)`; }
 
     // the nebula drifts a little as you turn
     nebula.style.transform = `translate(${(-Math.sin(yaw) * 40).toFixed(1)}px, ${(Math.sin(pitch) * 30).toFixed(1)}px)`;
