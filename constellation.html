@@ -11,198 +11,76 @@
     background: #030308;
     overflow: hidden;
     font-family: Tahoma, sans-serif;
+    overscroll-behavior: none;
   }
 
+  /* ---------- Background nebula (drifts slightly as you turn) ---------- */
   .nebula {
-    position: absolute;
-    inset: 0;
+    position: fixed;
+    inset: -8%;
     background:
-      radial-gradient(ellipse 60% 70% at 22% 45%, rgba(150, 110, 40, 0.28) 0%, transparent 65%),
-      radial-gradient(ellipse 55% 65% at 78% 50%, rgba(60, 90, 130, 0.3) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 70% at 22% 45%, rgba(150, 110, 40, 0.26) 0%, transparent 65%),
+      radial-gradient(ellipse 55% 65% at 78% 50%, rgba(60, 90, 130, 0.28) 0%, transparent 65%),
       radial-gradient(ellipse 90% 90% at 50% 50%, rgba(20, 24, 40, 0.5) 0%, rgba(3,3,8,1) 80%);
     pointer-events: none;
     z-index: 0;
+    will-change: transform;
   }
 
-  .nebula::before {
-    content: "";
-    position: absolute;
+  canvas#sky {
+    position: fixed;
     inset: 0;
-    background-image:
-      radial-gradient(3px 3px at 12% 30%, rgba(200,170,100,0.12), transparent),
-      radial-gradient(4px 4px at 30% 55%, rgba(200,170,100,0.1), transparent),
-      radial-gradient(3px 3px at 70% 35%, rgba(140,170,210,0.12), transparent),
-      radial-gradient(4px 4px at 85% 60%, rgba(140,170,210,0.1), transparent),
-      radial-gradient(3px 3px at 50% 20%, rgba(230,220,200,0.08), transparent);
-    filter: blur(6px);
-    opacity: 0.8;
-  }
-
-  .viewport {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    perspective: 900px;
-    overflow: hidden;
-  }
-
-  .sky {
-    position: absolute;
-    inset: 0;
-    transform-style: preserve-3d;
-    transition: transform 0.15s ease-out;
-  }
-
-  .dust {
-    position: absolute;
-    inset: 0;
-    background-image:
-      radial-gradient(1px 1px at 15% 25%, #fff, transparent),
-      radial-gradient(1px 1px at 35% 65%, #fff, transparent),
-      radial-gradient(1px 1px at 55% 15%, #fff, transparent),
-      radial-gradient(1px 1px at 75% 45%, #fff, transparent),
-      radial-gradient(1px 1px at 85% 75%, #fff, transparent),
-      radial-gradient(1px 1px at 25% 85%, #fff, transparent),
-      radial-gradient(1px 1px at 65% 90%, #fff, transparent),
-      radial-gradient(1px 1px at 45% 40%, #fff, transparent);
-    opacity: 0.5;
-    animation: twinkle 5s ease-in-out infinite alternate;
-    transform: translateZ(-300px);
-  }
-  @keyframes twinkle { from { opacity: 0.25; } to { opacity: 0.6; } }
-
-  .star-main {
-    position: absolute;
-    width: 26px;
-    height: 26px;
-    cursor: pointer;
-    transform-style: preserve-3d;
-  }
-
-  .star-shape {
     width: 100%;
     height: 100%;
-    clip-path: polygon(50% 0%, 95% 35%, 80% 100%, 20% 100%, 5% 35%);
-    background: radial-gradient(circle, #fff 0%, #f2e6cf 40%, #d9a441 100%);
-    box-shadow: 0 0 14px 4px rgba(217,164,65,0.6);
-    transition: box-shadow 0.4s ease, transform 0.4s ease;
+    z-index: 1;
+    cursor: grab;
+    touch-action: none;
   }
+  canvas#sky.dragging { cursor: grabbing; }
 
-  .star-main.nightmare .star-shape {
-    background: radial-gradient(circle, #fff 0%, #dce6f2 40%, #6b8cae 100%);
-    box-shadow: 0 0 14px 4px rgba(107,140,174,0.6);
-  }
-
-  .star-main.near .star-shape {
-    transform: scale(1.4);
-  }
-  .star-main.dream.near .star-shape {
-    box-shadow: 0 0 34px 12px rgba(217,164,65,0.85);
-  }
-  .star-main.nightmare.near .star-shape {
-    box-shadow: 0 0 34px 12px rgba(107,140,174,0.85);
-  }
-
-  .star-branch {
-    position: absolute;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    cursor: pointer;
-    background: radial-gradient(circle, #fff 0%, #d9a441 100%);
-    box-shadow: 0 0 8px 2px rgba(217,164,65,0.55);
-    transition: box-shadow 0.4s ease, transform 0.4s ease;
-  }
-  .star-branch.nightmare {
-    background: radial-gradient(circle, #fff 0%, #6b8cae 100%);
-    box-shadow: 0 0 8px 2px rgba(107,140,174,0.55);
-  }
-  .star-branch.near { transform: scale(1.8); }
-
-  .link {
-    position: absolute;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(217,164,65,0.35), rgba(217,164,65,0.05));
-    transform-origin: 0 0;
+  /* ---------- Edge of the sky ---------- */
+  .edge {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
     pointer-events: none;
-  }
-  .link.nightmare {
-    background: linear-gradient(90deg, rgba(107,140,174,0.35), rgba(107,140,174,0.05));
-  }
-
-  .preview-card {
-    position: absolute;
-    top: 32px;
-    left: 50%;
-    transform: translateX(-50%) translateY(6px);
-    width: 150px;
     opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.35s ease, transform 0.35s ease;
-    text-align: center;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(107,140,174,0.10) 70%, rgba(107,140,174,0.38) 100%);
+    transition: opacity 0.3s linear;
   }
-  .star-main.near .preview-card {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  .preview-card img {
-    width: 100%;
-    height: 90px;
-    object-fit: cover;
-    border-radius: 4px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.6);
-    filter: grayscale(1) contrast(1.05);
-  }
-
-  .preview-card p {
-    margin-top: 6px;
-    font-size: 0.68rem;
-    color: #e8dfc8;
-    line-height: 1.5;
-    background: rgba(5,5,10,0.55);
-    padding: 4px 6px;
-    border-radius: 4px;
-  }
-
-  .preview-card .note {
-    font-size: 0.65rem;
-    color: rgba(217,164,65,0.85);
-    margin-top: 3px;
-  }
-  .star-main.nightmare .preview-card .note { color: rgba(107,140,174,0.9); }
-
-  .branch-preview {
-    position: absolute;
-    top: 16px;
+  .edge-msg {
+    position: fixed;
+    bottom: 70px;
     left: 50%;
-    transform: translateX(-50%) translateY(4px);
-    width: 110px;
-    font-size: 0.62rem;
-    color: #d8cfb8;
-    background: rgba(5,5,10,0.6);
-    padding: 4px 6px;
-    border-radius: 4px;
+    transform: translateX(-50%);
+    z-index: 5;
+    color: rgba(190, 210, 232, 0.85);
+    font-size: 0.82rem;
+    letter-spacing: 1px;
     opacity: 0;
+    transition: opacity 0.6s ease;
     pointer-events: none;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    text-align: center;
+    text-shadow: 0 0 12px rgba(107,140,174,0.7);
+    white-space: nowrap;
   }
-  .star-branch.near .branch-preview {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  .edge-msg.show { opacity: 1; }
 
+  /* ---------- Hint / legend / gauge ---------- */
   .hint {
     position: fixed;
     top: 22px;
     left: 50%;
     transform: translateX(-50%);
-    color: rgba(230, 220, 200, 0.5);
+    color: rgba(230, 220, 200, 0.55);
     font-size: 0.82rem;
     letter-spacing: 1px;
     z-index: 5;
+    text-align: center;
+    pointer-events: none;
+    transition: opacity 2s ease;
+    width: 80vw;
   }
+  .hint.faded { opacity: 0.22; }
 
   .legend {
     position: fixed;
@@ -214,23 +92,158 @@
     font-size: 0.72rem;
     color: rgba(230,220,200,0.55);
     z-index: 5;
+    pointer-events: none;
+    white-space: nowrap;
   }
   .legend span { display: flex; align-items: center; gap: 6px; }
   .legend i { width: 9px; height: 9px; display: inline-block; }
   .legend .p1 { background: #d9a441; clip-path: polygon(50% 0%, 95% 35%, 80% 100%, 20% 100%, 5% 35%); }
   .legend .p2 { background: #6b8cae; clip-path: polygon(50% 0%, 95% 35%, 80% 100%, 20% 100%, 5% 35%); }
   .legend .p3 { background: #d9a441; border-radius: 50%; width: 6px; height: 6px; }
+
+  .gauge {
+    position: fixed;
+    bottom: 22px;
+    left: 26px;
+    z-index: 5;
+    width: 110px;
+    font-size: 0.64rem;
+    color: rgba(230,220,200,0.5);
+    pointer-events: none;
+  }
+  .gauge .bar {
+    margin-top: 5px;
+    height: 2px;
+    background: rgba(230,220,200,0.14);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .gauge .bar i {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: #d9a441;
+    transition: background 0.4s ease;
+  }
+
+  /* ---------- Preview card (shows when you get close to a star) ---------- */
+  .preview-card {
+    position: fixed;
+    left: 0; top: 0;
+    width: 170px;
+    z-index: 6;
+    opacity: 0;
+    pointer-events: none;
+    text-align: center;
+    transition: opacity 0.35s ease;
+  }
+  .preview-card.show { opacity: 1; }
+  .preview-card img {
+    width: 100%;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    filter: grayscale(1) contrast(1.05);
+    display: block;
+  }
+  .preview-card.branch img { display: none; }
+  .preview-card p {
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: #e8dfc8;
+    line-height: 1.6;
+    background: rgba(5,5,10,0.6);
+    padding: 5px 8px;
+    border-radius: 4px;
+  }
+  .preview-card .note {
+    font-size: 0.66rem;
+    color: rgba(217,164,65,0.9);
+    margin-top: 3px;
+  }
+  .preview-card.nightmare .note { color: rgba(107,140,174,0.95); }
+  .preview-card.branch .note { display: none; }
+
+  /* ---------- Back to room ---------- */
+  .back-window {
+    position: fixed;
+    top: 22px;
+    right: 26px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    z-index: 6;
+    opacity: 0.75;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .back-window:hover { opacity: 1; transform: scale(1.1); }
+
+  /* ---------- Touch buttons (only on touch screens) ---------- */
+  .move-btns {
+    position: fixed;
+    right: 20px;
+    bottom: 70px;
+    z-index: 7;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  @media (pointer: coarse) { .move-btns { display: flex; } }
+  .move-btns button {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: 1px solid rgba(242,230,207,0.4);
+    background: rgba(10,8,14,0.5);
+    color: #f2e6cf;
+    font-size: 1.2rem;
+    touch-action: none;
+    user-select: none;
+  }
+
+  /* ---------- Blink transition ---------- */
+  .eyelid {
+    position: fixed;
+    left: 0; right: 0;
+    background: #030308;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .eyelid-top { top: 0; height: 50%; transform: translateY(-100%); }
+  .eyelid-bottom { bottom: 0; height: 50%; transform: translateY(100%); }
+  .eyelid.closing.eyelid-top { animation: closeTop 0.55s ease forwards; }
+  .eyelid.closing.eyelid-bottom { animation: closeBottom 0.55s ease forwards; }
+  @keyframes closeTop { to { transform: translateY(0); } }
+  @keyframes closeBottom { to { transform: translateY(0); } }
+  .eyelid.opening.eyelid-top { animation: openTop 0.6s ease forwards; }
+  .eyelid.opening.eyelid-bottom { animation: openBottom 0.6s ease forwards; }
+  @keyframes openTop { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+  @keyframes openBottom { from { transform: translateY(0); } to { transform: translateY(100%); } }
 </style>
 </head>
 <body>
 
-<div class="hint">موس رو حرکت بده تا آسمون بچرخه، نزدیک ستاره‌ها شو</div>
+<div class="eyelid eyelid-top" id="eyelidTop"></div>
+<div class="eyelid eyelid-bottom" id="eyelidBottom"></div>
 
-<div class="viewport" id="viewport">
-  <div class="nebula"></div>
-  <div class="sky" id="sky">
-    <div class="dust"></div>
-  </div>
+<div class="nebula" id="nebula"></div>
+<canvas id="sky"></canvas>
+<div class="edge" id="edge"></div>
+<div class="edge-msg" id="edgeMsg">به لبه‌ی آسمون رسیدی، از اینجا جلوتر راهی نیست</div>
+
+<div class="hint" id="hint"></div>
+
+<div class="back-window" id="backWindow" title="برگشت به اتاق">
+  <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+    <rect x="6" y="4" width="28" height="32" rx="2" fill="none" stroke="#cbb98a" stroke-width="2"/>
+    <line x1="20" y1="4" x2="20" y2="36" stroke="#cbb98a" stroke-width="1.6"/>
+    <line x1="6" y1="20" x2="34" y2="20" stroke="#cbb98a" stroke-width="1.6"/>
+  </svg>
+</div>
+
+<div class="gauge">
+  <span>فاصله از مرکز</span>
+  <div class="bar"><i id="gaugeFill"></i></div>
 </div>
 
 <div class="legend">
@@ -239,13 +252,57 @@
   <span><i class="p3"></i> ادامه‌ی دیگران</span>
 </div>
 
+<div class="move-btns">
+  <button id="btnFwd" aria-label="جلو">▲</button>
+  <button id="btnBack" aria-label="عقب">▼</button>
+</div>
+
+<div class="preview-card" id="card">
+  <img id="cardImg" alt="پیش‌نمایش خواب">
+  <p id="cardText"></p>
+  <div class="note">♪ در حال پخش</div>
+</div>
+
 <script src="vahm-music.js"></script>
 <script>
-  // continue the ambient music from the previous page
   VahmMusic.resume(3);
-  const sky = document.getElementById('sky');
-  const viewport = document.getElementById('viewport');
 
+  /* =====================================================================
+     Settings you can tweak
+     ===================================================================== */
+  const SCROLL_UP_GOES_FORWARD = true;  // false = scrolling down moves you forward
+  const R_MAX   = 82;     // the farthest you can ever get from the center (hard wall)
+  const R_SOFT  = 62;     // from here on you slow down as you approach the wall
+  const FOV     = 72 * Math.PI / 180;
+  const DUST_COUNT = 3200;
+
+  /* =====================================================================
+     Blink transition + back button
+     ===================================================================== */
+  const eyelidTop = document.getElementById('eyelidTop');
+  const eyelidBottom = document.getElementById('eyelidBottom');
+  function blinkTo(url) {
+    eyelidTop.classList.add('closing');
+    eyelidBottom.classList.add('closing');
+    setTimeout(() => { window.location.href = url; }, 520);
+  }
+  window.addEventListener('DOMContentLoaded', () => {
+    eyelidTop.classList.add('opening');
+    eyelidBottom.classList.add('opening');
+  });
+  document.getElementById('backWindow').addEventListener('click', () => blinkTo('room.html'));
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') blinkTo('room.html'); });
+
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+  const hint = document.getElementById('hint');
+  hint.textContent = isTouch
+    ? 'با انگشت بکش تا بچرخی، با دکمه‌ها جلو و عقب برو'
+    : 'اسکرول کن تا جلو و عقب بری، موس رو به لبه‌ی صفحه ببر تا بچرخی';
+  setTimeout(() => hint.classList.add('faded'), 9000);
+
+  /* =====================================================================
+     Dream data (same stars as before, plus more)
+     ===================================================================== */
   const placeholderImg = (hue) =>
     `data:image/svg+xml;utf8,${encodeURIComponent(`
       <svg xmlns='http://www.w3.org/2000/svg' width='200' height='140'>
@@ -254,105 +311,502 @@
       </svg>`)}`;
 
   const mainDreams = [
-    { x: 20, y: 30, z: -60, type: 'dream', text: 'تو یه جنگل مه‌آلود قدم می‌زدم و صدای زنگی از دور می‌اومد...' },
-    { x: 55, y: 45, z: -120, type: 'nightmare', text: 'در یه راهروی بی‌انتها بودم که درها یکی‌یکی بسته می‌شدن...' },
-    { x: 75, y: 25, z: -40, type: 'dream', text: 'روی آب دریا راه می‌رفتم، انگار سطحش جامد شده بود...' },
-    { x: 35, y: 65, z: -90, type: 'dream', text: 'یه پرنده‌ی بزرگ منو با خودش تا بالای ابرها برد...' },
-    { x: 65, y: 70, z: -150, type: 'nightmare', text: 'صدای قدم‌هایی پشت سرم می‌اومد ولی هیچکس نبود...' },
+    { type: 'dream',     text: 'تو یه جنگل مه‌آلود قدم می‌زدم و صدای زنگی از دور می‌اومد...' },
+    { type: 'nightmare', text: 'در یه راهروی بی‌انتها بودم که درها یکی‌یکی بسته می‌شدن...' },
+    { type: 'dream',     text: 'روی آب دریا راه می‌رفتم، انگار سطحش جامد شده بود...' },
+    { type: 'dream',     text: 'یه پرنده‌ی بزرگ منو با خودش تا بالای ابرها برد...' },
+    { type: 'nightmare', text: 'صدای قدم‌هایی پشت سرم می‌اومد ولی هیچکس نبود...' },
+    { type: 'dream',     text: 'توی خونه‌ی بچگیم بودم و همه‌ی اتاق‌ها پر از نور بود...' },
+    { type: 'nightmare', text: 'پله‌ها هی بالاتر می‌رفتن و هیچ‌وقت به پشت‌بوم نمی‌رسیدم...' },
+    { type: 'dream',     text: 'ماه خیلی نزدیک شده بود و می‌تونستم لمسش کنم...' },
+    { type: 'nightmare', text: 'توی یه قطار خالی بودم که ایستگاهی نداشت...' },
+    { type: 'dream',     text: 'دریا یهو خشک شد و ماهی‌ها توی هوا شنا می‌کردن...' },
+    { type: 'nightmare', text: 'آینه‌ی اتاق منو نشون می‌داد ولی یه ثانیه دیرتر...' },
+    { type: 'dream',     text: 'یه باغ پر از گل‌های نورانی پیدا کردم که اسممو می‌دونستن...' },
+    { type: 'nightmare', text: 'تلفن زنگ می‌زد و اون‌طرف خط صدای خودم بود...' },
+    { type: 'dream',     text: 'با دوستای قدیمی کنار آتیش نشسته بودیم و همه چی آروم بود...' },
+    { type: 'nightmare', text: 'زمین زیر پام نرم شد و آروم فرو رفتم...' },
+    { type: 'dream',     text: 'باد منو از روی پشت‌بوم بلند کرد و روی شهر چرخوند...' },
+    { type: 'nightmare', text: 'همه‌ی چراغ‌های شهر خاموش شد و فقط یه پنجره روشن موند...' },
+    { type: 'dream',     text: 'توی کتابخونه‌ای بودم که کتاباش زیر سقف شناور بودن...' },
+    { type: 'nightmare', text: 'یه سایه‌ی بلند پشت پنجره ایستاده بود و تکون نمی‌خورد...' },
+    { type: 'dream',     text: 'ستاره‌ها پایین اومدن و دور من نشستن...' },
   ];
 
-  const branches = [
-    { parentIndex: 0, offX: 6, offY: -5, text: 'ادامه: بعد از زنگ، یه در چوبی پیدا کردم...' },
-    { parentIndex: 0, offX: -5, offY: 6, text: 'ادامه: زنگ به یه ساعت قدیمی وصل بود...' },
-    { parentIndex: 2, offX: 5, offY: 5, text: 'ادامه: آب یهو شکست و افتادم پایین...' },
-    { parentIndex: 4, offX: -6, offY: -4, text: 'ادامه: قدم‌ها متعلق به خودم از آینده بود...' },
+  const branchData = [
+    { parent: 0,  text: 'ادامه: بعد از زنگ، یه در چوبی پیدا کردم...' },
+    { parent: 0,  text: 'ادامه: زنگ به یه ساعت قدیمی وصل بود...' },
+    { parent: 2,  text: 'ادامه: آب یهو شکست و افتادم پایین...' },
+    { parent: 4,  text: 'ادامه: قدم‌ها متعلق به خودم از آینده بود...' },
+    { parent: 7,  text: 'ادامه: ماه آروم باز شد و توش یه شهر بود...' },
+    { parent: 12, text: 'ادامه: صدا گفت «برنگرد»...' },
   ];
 
-  function pct(v) { return v + '%'; }
+  /* =====================================================================
+     World generation (seeded, so the sky looks the same every visit)
+     ===================================================================== */
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const rnd = mulberry32(20261003);
 
-  const starEls = [];
+  function randInBall(r) {
+    const th = 2 * Math.PI * rnd();
+    const ph = Math.acos(2 * rnd() - 1);
+    const rr = r * Math.cbrt(rnd());
+    return [rr * Math.sin(ph) * Math.cos(th), rr * Math.cos(ph), rr * Math.sin(ph) * Math.sin(th)];
+  }
+  const dist3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
-  mainDreams.forEach((d, i) => {
-    const el = document.createElement('div');
-    el.className = 'star-main ' + d.type;
-    el.style.left = pct(d.x);
-    el.style.top = pct(d.y);
-    el.style.transform = `translateZ(${d.z}px)`;
-    el.innerHTML = `
-      <div class="star-shape"></div>
-      <div class="preview-card">
-        <img src="${placeholderImg(d.type === 'dream' ? 42 : 210)}" alt="پیش‌نمایش خواب">
-        <p>${d.text.slice(0, 40)}...</p>
-        <div class="note">♪ در حال پخش</div>
-      </div>
-    `;
-    sky.appendChild(el);
-    starEls.push({ el, x: d.x, y: d.y, z: d.z, type: 'main', dtype: d.type });
-  });
-
-  branches.forEach(b => {
-    const parent = mainDreams[b.parentIndex];
-    const x = parent.x + b.offX;
-    const y = parent.y + b.offY;
-    const z = parent.z + 10;
-
-    const el = document.createElement('div');
-    el.className = 'star-branch ' + parent.type;
-    el.style.left = pct(x);
-    el.style.top = pct(y);
-    el.style.transform = `translateZ(${z}px)`;
-    el.innerHTML = `<div class="branch-preview">${b.text}</div>`;
-    sky.appendChild(el);
-    starEls.push({ el, x, y, z, type: 'branch', dtype: parent.type });
-  });
-
-  let targetRX = 0, targetRY = 0, curRX = 0, curRY = 0;
-  let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-
-  window.addEventListener('mousemove', (e) => {
-    const nx = (e.clientX / window.innerWidth) - 0.5;
-    const ny = (e.clientY / window.innerHeight) - 0.5;
-    targetRY = nx * 22;
-    targetRX = -ny * 14;
-    lastMouse.x = e.clientX;
-    lastMouse.y = e.clientY;
-  });
-
-  window.addEventListener('touchmove', (e) => {
-    if (e.touches[0]) {
-      lastMouse.x = e.touches[0].clientX;
-      lastMouse.y = e.touches[0].clientY;
-      const nx = (e.touches[0].clientX / window.innerWidth) - 0.5;
-      const ny = (e.touches[0].clientY / window.innerHeight) - 0.5;
-      targetRY = nx * 22;
-      targetRX = -ny * 14;
-    }
-  });
-
-  function animate() {
-    curRX += (targetRX - curRX) * 0.06;
-    curRY += (targetRY - curRY) * 0.06;
-    sky.style.transform = `rotateX(${curRX}deg) rotateY(${curRY}deg)`;
-
-    starEls.forEach(s => {
-      const b = s.el.getBoundingClientRect();
-      const cx = b.left + b.width / 2;
-      const cy = b.top + b.height / 2;
-      const dx = cx - lastMouse.x;
-      const dy = cy - lastMouse.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const threshold = s.type === 'main' ? 90 : 55;
-      if (dist < threshold) {
-        s.el.classList.add('near');
-      } else {
-        s.el.classList.remove('near');
-      }
+  // main stars: spread through the ball, kept apart from each other and from the center
+  const stars = [];
+  mainDreams.forEach((d) => {
+    let p, tries = 0;
+    do {
+      p = randInBall(72);
+      tries++;
+    } while (tries < 600 && (Math.hypot(p[0], p[1], p[2]) < 14 || stars.some(s => dist3(s.p, p) < 15)));
+    stars.push({
+      p, kind: 'main', type: d.type, text: d.text, size: 1.5 + rnd() * 0.5,
+      phase: rnd() * 6.28, speed: 0.6 + rnd() * 0.9,
+      img: placeholderImg(d.type === 'dream' ? 42 : 210),
     });
+  });
+  const mains = stars.slice();
 
-    requestAnimationFrame(animate);
+  // branch stars: small stars hanging near their parent
+  branchData.forEach(b => {
+    const parent = stars[b.parent];
+    const off = randInBall(1); const len = Math.hypot(off[0], off[1], off[2]) || 1;
+    const k = (5 + rnd() * 3) / len;
+    stars.push({
+      p: [parent.p[0] + off[0] * k, parent.p[1] + off[1] * k, parent.p[2] + off[2] * k],
+      kind: 'branch', type: parent.type, text: b.text, size: 0.6 + rnd() * 0.2,
+      phase: rnd() * 6.28, speed: 0.8 + rnd() * 1.0, parent,
+    });
+  });
+
+  // ambient stars: brighter than dust, no dream attached, just to fill the sky
+  for (let i = 0; i < 170; i++) {
+    stars.push({
+      p: randInBall(122), kind: 'ambient', type: rnd() < 0.6 ? 'dream' : 'nightmare',
+      size: 0.28 + rnd() * 0.32, phase: rnd() * 6.28, speed: 0.5 + rnd() * 1.4,
+    });
   }
 
-  animate();
+  // constellation lines: link each main star to its nearest neighbours of the same kind
+  const edges = [];
+  const edgeKey = new Set();
+  const idx = (s) => stars.indexOf(s);
+  mains.forEach(s => {
+    mains.filter(o => o !== s && o.type === s.type)
+      .map(o => ({ o, d: dist3(s.p, o.p) }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 2)
+      .forEach(({ o, d }) => {
+        if (d > 36) return;
+        const i = idx(s), j = idx(o);
+        const key = i < j ? i + '-' + j : j + '-' + i;
+        if (edgeKey.has(key)) return;
+        edgeKey.add(key);
+        edges.push({ a: i, b: j, type: s.type });
+      });
+  });
+  stars.filter(s => s.kind === 'branch').forEach(s => edges.push({ a: idx(s.parent), b: idx(s), type: s.type }));
+
+  // background dust: fills the ball and fades out softly near its outer edge
+  const DUST_R = 135, DUST_FADE_START = 112;
+  const dustPos = new Float32Array(DUST_COUNT * 3);
+  const dustMeta = new Float32Array(DUST_COUNT * 4); // phase, brightness, size, edgeFade
+  const dustColor = new Uint8Array(DUST_COUNT);
+  const order = [];
+  for (let i = 0; i < DUST_COUNT; i++) {
+    const p = randInBall(DUST_R);
+    const r = Math.hypot(p[0], p[1], p[2]);
+    order.push({
+      p, ph: rnd() * 6.28, br: 0.35 + rnd() * 0.6, sz: 0.7 + rnd() * 1.2,
+      fade: Math.max(0, Math.min(1, (DUST_R - r) / (DUST_R - DUST_FADE_START))),
+      c: rnd() < 0.18 ? 1 : (rnd() < 0.22 ? 2 : 0),
+    });
+  }
+  order.sort((a, b) => a.c - b.c);   // grouped by colour => few fillStyle switches
+  order.forEach((d, i) => {
+    dustPos[i * 3] = d.p[0]; dustPos[i * 3 + 1] = d.p[1]; dustPos[i * 3 + 2] = d.p[2];
+    dustMeta[i * 4] = d.ph; dustMeta[i * 4 + 1] = d.br; dustMeta[i * 4 + 2] = d.sz; dustMeta[i * 4 + 3] = d.fade;
+    dustColor[i] = d.c;
+  });
+  const DUST_COLORS = ['#ffffff', '#f0d9a8', '#b9cde6'];
+
+  /* =====================================================================
+     Glow sprites
+     ===================================================================== */
+  function makeSprite(r, g, b) {
+    const s = 256, c = document.createElement('canvas');
+    c.width = c.height = s;
+    const x = c.getContext('2d');
+    const grad = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    grad.addColorStop(0, 'rgba(255,255,255,1)');
+    grad.addColorStop(0.07, 'rgba(255,250,240,0.95)');
+    grad.addColorStop(0.2, `rgba(${r},${g},${b},0.6)`);
+    grad.addColorStop(0.5, `rgba(${r},${g},${b},0.14)`);
+    grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    x.fillStyle = grad;
+    x.fillRect(0, 0, s, s);
+    x.globalCompositeOperation = 'lighter';
+    // thin sparkle cross
+    const h = x.createLinearGradient(0, 0, s, 0);
+    h.addColorStop(0, 'rgba(255,255,255,0)');
+    h.addColorStop(0.5, 'rgba(255,255,255,0.75)');
+    h.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = h; x.fillRect(s * 0.04, s / 2 - 1.2, s * 0.92, 2.4);
+    const v = x.createLinearGradient(0, 0, 0, s);
+    v.addColorStop(0, 'rgba(255,255,255,0)');
+    v.addColorStop(0.5, 'rgba(255,255,255,0.75)');
+    v.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = v; x.fillRect(s / 2 - 1.2, s * 0.04, 2.4, s * 0.92);
+    return c;
+  }
+  const sprites = {
+    dream: makeSprite(217, 164, 65),
+    nightmare: makeSprite(107, 140, 174),
+  };
+  const lineColor = { dream: '217,164,65', nightmare: '107,140,174' };
+
+  /* =====================================================================
+     Canvas + camera
+     ===================================================================== */
+  const canvas = document.getElementById('sky');
+  const ctx = canvas.getContext('2d');
+  const nebula = document.getElementById('nebula');
+  let W = 0, H = 0, DPR = 1, focal = 600;
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    focal = 0.5 * H / Math.tan(FOV / 2);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const cam = { x: 0, y: 0, z: 0 };
+  const vel = { x: 0, y: 0, z: 0 };
+  let yaw = 0, pitch = 0, yawVel = 0, pitchVel = 0;
+
+  // start by looking toward the busiest part of the sky
+  (function pickStartDirection() {
+    let best = -1, bestDir = [0, 0, -1];
+    const N = 300, golden = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < N; i++) {
+      const y = 1 - 2 * (i + 0.5) / N, rr = Math.sqrt(1 - y * y), th = golden * i;
+      const d = [Math.cos(th) * rr, y * 0.6, Math.sin(th) * rr];
+      const n = Math.hypot(d[0], d[1], d[2]); d[0] /= n; d[1] /= n; d[2] /= n;
+      let score = 0;
+      mains.forEach(s => {
+        const L = Math.hypot(s.p[0], s.p[1], s.p[2]);
+        const c = (s.p[0] * d[0] + s.p[1] * d[1] + s.p[2] * d[2]) / L;
+        if (c > 0.8) score += 1 / (0.4 + L / 40);
+      });
+      if (score > best) { best = score; bestDir = d; }
+    }
+    yaw = Math.atan2(bestDir[0], -bestDir[2]);
+    pitch = Math.asin(Math.max(-0.5, Math.min(0.5, bestDir[1])));
+  })();
+
+  function forwardVec() {
+    const cp = Math.cos(pitch);
+    return [cp * Math.sin(yaw), Math.sin(pitch), -cp * Math.cos(yaw)];
+  }
+
+  // gentle drift when you arrive
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const f = forwardVec();
+    vel.x = f[0] * 9; vel.y = f[1] * 9; vel.z = f[2] * 9;
+  }
+
+  /* =====================================================================
+     Input
+     ===================================================================== */
+  const mouse = { x: 0.5, y: 0.5, px: -9999, py: -9999, active: false };
+  let dragging = false, lastDX = 0, lastDY = 0;
+  let moveDir = 0;               // +1 forward, -1 back (touch buttons)
+  const keys = new Set();
+
+  window.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch') return;
+    mouse.px = e.clientX; mouse.py = e.clientY;
+    mouse.x = e.clientX / W; mouse.y = e.clientY / H;
+    mouse.active = true;
+  });
+  document.addEventListener('mouseleave', () => { mouse.active = false; mouse.px = mouse.py = -9999; });
+
+  canvas.addEventListener('pointerdown', (e) => {
+    dragging = true; lastDX = e.clientX; lastDY = e.clientY;
+    canvas.classList.add('dragging');
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastDX, dy = e.clientY - lastDY;
+    lastDX = e.clientX; lastDY = e.clientY;
+    yaw += dx * 0.0045;
+    pitch = Math.max(-1.45, Math.min(1.45, pitch - dy * 0.0045));
+  });
+  const endDrag = () => { dragging = false; canvas.classList.remove('dragging'); };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  window.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    let dy = e.deltaY;
+    if (e.deltaMode === 1) dy *= 16;
+    else if (e.deltaMode === 2) dy *= 400;
+    const sign = SCROLL_UP_GOES_FORWARD ? -1 : 1;
+    const f = forwardVec();
+    const impulse = sign * dy * 0.13;
+    vel.x += f[0] * impulse; vel.y += f[1] * impulse; vel.z += f[2] * impulse;
+    const sp = Math.hypot(vel.x, vel.y, vel.z);
+    if (sp > 42) { const k = 42 / sp; vel.x *= k; vel.y *= k; vel.z *= k; }
+  }, { passive: false });
+
+  window.addEventListener('keydown', (e) => {
+    if (['ArrowUp', 'w', 'W'].includes(e.key)) { keys.add('f'); e.preventDefault(); }
+    if (['ArrowDown', 's', 'S'].includes(e.key)) { keys.add('b'); e.preventDefault(); }
+  });
+  window.addEventListener('keyup', (e) => {
+    if (['ArrowUp', 'w', 'W'].includes(e.key)) keys.delete('f');
+    if (['ArrowDown', 's', 'S'].includes(e.key)) keys.delete('b');
+  });
+
+  function holdButton(id, dir) {
+    const el = document.getElementById(id);
+    const on = (e) => { e.preventDefault(); moveDir = dir; };
+    const off = () => { if (moveDir === dir) moveDir = 0; };
+    el.addEventListener('pointerdown', on);
+    el.addEventListener('pointerup', off);
+    el.addEventListener('pointerleave', off);
+    el.addEventListener('pointercancel', off);
+  }
+  holdButton('btnFwd', 1);
+  holdButton('btnBack', -1);
+
+  /* =====================================================================
+     Preview card
+     ===================================================================== */
+  const card = document.getElementById('card');
+  const cardImg = document.getElementById('cardImg');
+  const cardText = document.getElementById('cardText');
+  let focusStar = null;
+
+  function setFocus(s) {
+    if (s === focusStar) return;
+    focusStar = s;
+    if (!s) { card.classList.remove('show'); return; }
+    card.className = 'preview-card ' + s.type + (s.kind === 'branch' ? ' branch' : '');
+    if (s.kind === 'main') cardImg.src = s.img;
+    cardText.textContent = s.text;
+    requestAnimationFrame(() => card.classList.add('show'));
+  }
+
+  /* =====================================================================
+     Main loop
+     ===================================================================== */
+  const gaugeFill = document.getElementById('gaugeFill');
+  const edgeEl = document.getElementById('edge');
+  const edgeMsg = document.getElementById('edgeMsg');
+  const DEAD = 0.16;        // centre zone where moving the mouse does not turn the camera
+  const FOCUS_DEPTH = 36;   // how close a star must be to show its card
+  const NEARP = 0.4;
+
+  let last = performance.now();
+  const proj = stars.map(() => ({ x: 0, y: 0, z: 0, rad: 0 }));
+
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const t = now / 1000;
+
+    /* ---- turning: the further the mouse is from the centre, the faster we turn ---- */
+    let tYaw = 0, tPitch = 0;
+    if (mouse.active && !dragging) {
+      const ex = (mouse.x - 0.5) * 2, ey = (mouse.y - 0.5) * 2;
+      const sx = Math.sign(ex) * Math.max(0, Math.abs(ex) - DEAD) / (1 - DEAD);
+      const sy = Math.sign(ey) * Math.max(0, Math.abs(ey) - DEAD) / (1 - DEAD);
+      tYaw = sx * Math.sqrt(Math.abs(sx)) * 1.5;       // radians per second at the edge
+      tPitch = -sy * Math.sqrt(Math.abs(sy)) * 1.0;
+    }
+    const smooth = 1 - Math.exp(-6 * dt);
+    yawVel += (tYaw - yawVel) * smooth;
+    pitchVel += (tPitch - pitchVel) * smooth;
+    yaw += yawVel * dt;
+    pitch = Math.max(-1.45, Math.min(1.45, pitch + pitchVel * dt));
+
+    /* ---- moving with keys / touch buttons ---- */
+    const dir = (keys.has('f') ? 1 : 0) - (keys.has('b') ? 1 : 0) + moveDir;
+    if (dir) {
+      const f = forwardVec();
+      vel.x += f[0] * dir * 55 * dt; vel.y += f[1] * dir * 55 * dt; vel.z += f[2] * dir * 55 * dt;
+      const sp = Math.hypot(vel.x, vel.y, vel.z);
+      if (sp > 30) { const k = 30 / sp; vel.x *= k; vel.y *= k; vel.z *= k; }
+    }
+
+    /* ---- inertia ---- */
+    const damp = Math.exp(-2.4 * dt);
+    vel.x *= damp; vel.y *= damp; vel.z *= damp;
+
+    /* ---- the wall: slow down near the edge, and never cross it ---- */
+    let dist = Math.hypot(cam.x, cam.y, cam.z);
+    if (dist > 0.001) {
+      const nx = cam.x / dist, ny = cam.y / dist, nz = cam.z / dist;
+      const vr = vel.x * nx + vel.y * ny + vel.z * nz;          // speed pointing outward
+      if (vr > 0 && dist > R_SOFT) {
+        const k = Math.min(1, (dist - R_SOFT) / (R_MAX - R_SOFT));
+        const cut = vr * (1 - Math.exp(-k * 9 * dt));
+        vel.x -= nx * cut; vel.y -= ny * cut; vel.z -= nz * cut;
+      }
+    }
+    cam.x += vel.x * dt; cam.y += vel.y * dt; cam.z += vel.z * dt;
+    dist = Math.hypot(cam.x, cam.y, cam.z);
+    if (dist > R_MAX) {
+      const nx = cam.x / dist, ny = cam.y / dist, nz = cam.z / dist;
+      cam.x = nx * R_MAX; cam.y = ny * R_MAX; cam.z = nz * R_MAX;
+      const vr = vel.x * nx + vel.y * ny + vel.z * nz;
+      if (vr > 0) { vel.x -= nx * vr; vel.y -= ny * vr; vel.z -= nz * vr; }
+      dist = R_MAX;
+    }
+
+    /* ---- camera basis ---- */
+    const cp = Math.cos(pitch), sp_ = Math.sin(pitch), cy_ = Math.cos(yaw), sy_ = Math.sin(yaw);
+    const fx = cp * sy_, fy = sp_, fz = -cp * cy_;          // forward
+    const rx = cy_, rz = sy_;                               // right (its y part is 0)
+    const ux = -sy_ * sp_, uy = cp, uz = cy_ * sp_;         // up
+    const cx = W / 2, cyS = H / 2;
+
+    ctx.clearRect(0, 0, W, H);
+
+    /* ---- dust ---- */
+    let curColor = -1;
+    for (let i = 0; i < DUST_COUNT; i++) {
+      const dx = dustPos[i * 3] - cam.x, dy = dustPos[i * 3 + 1] - cam.y, dz = dustPos[i * 3 + 2] - cam.z;
+      const z = dx * fx + dy * fy + dz * fz;
+      if (z < 0.6) continue;
+      const sx = cx + (dx * rx + dz * rz) / z * focal;
+      if (sx < -4 || sx > W + 4) continue;
+      const sy = cyS - (dx * ux + dy * uy + dz * uz) / z * focal;
+      if (sy < -4 || sy > H + 4) continue;
+      const m = i * 4;
+      const tw = 0.75 + 0.25 * Math.sin(t * (0.7 + dustMeta[m + 2]) + dustMeta[m]);
+      const depth = Math.max(0.3, Math.min(1, 1.25 - z / 170));
+      const a = dustMeta[m + 1] * tw * dustMeta[m + 3] * depth;
+      if (a < 0.03) continue;
+      if (dustColor[i] !== curColor) { curColor = dustColor[i]; ctx.fillStyle = DUST_COLORS[curColor]; }
+      ctx.globalAlpha = a;
+      const sz = dustMeta[m + 2] * Math.max(0.8, Math.min(2.2, 26 / z + 0.4));
+      ctx.fillRect(sx - sz / 2, sy - sz / 2, sz, sz);
+    }
+    ctx.globalAlpha = 1;
+
+    /* ---- project the real stars ---- */
+    const visible = [];
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i], P = proj[i];
+      const dx = s.p[0] - cam.x, dy = s.p[1] - cam.y, dz = s.p[2] - cam.z;
+      const z = dx * fx + dy * fy + dz * fz;
+      P.z = z;
+      const zz = z > 1e-4 ? z : 1e-4;
+      P.x = cx + (dx * rx + dz * rz) / zz * focal;
+      P.y = cyS - (dx * ux + dy * uy + dz * uz) / zz * focal;
+      P.rad = s.size * focal / Math.max(z, 0.5);
+      if (z > 0.25) visible.push(i);
+    }
+
+    /* ---- constellation lines (clipped against the near plane) ---- */
+    ctx.lineWidth = 1;
+    edges.forEach(e => {
+      const A = proj[e.a], B = proj[e.b];
+      let ax = A.x, ay = A.y, az = A.z, bx = B.x, by = B.y, bz = B.z;
+      if (az < NEARP && bz < NEARP) return;
+      const clipPoint = (inS, outS, zIn, zOut) => {
+        const k = (NEARP - zOut) / (zIn - zOut);
+        const wx = outS.p[0] + (inS.p[0] - outS.p[0]) * k - cam.x;
+        const wy = outS.p[1] + (inS.p[1] - outS.p[1]) * k - cam.y;
+        const wz = outS.p[2] + (inS.p[2] - outS.p[2]) * k - cam.z;
+        const z2 = wx * fx + wy * fy + wz * fz;
+        return [cx + (wx * rx + wz * rz) / z2 * focal, cyS - (wx * ux + wy * uy + wz * uz) / z2 * focal, z2];
+      };
+      if (az < NEARP) { const c = clipPoint(stars[e.b], stars[e.a], bz, az); ax = c[0]; ay = c[1]; az = c[2]; }
+      else if (bz < NEARP) { const c = clipPoint(stars[e.a], stars[e.b], az, bz); bx = c[0]; by = c[1]; bz = c[2]; }
+      const alpha = Math.max(0, Math.min(0.26, 0.3 * (1 - Math.min(az, bz) / 150)));
+      if (alpha < 0.01) return;
+      const g = ctx.createLinearGradient(ax, ay, bx, by);
+      g.addColorStop(0, `rgba(${lineColor[e.type]},${alpha})`);
+      g.addColorStop(0.5, `rgba(${lineColor[e.type]},${alpha * 0.45})`);
+      g.addColorStop(1, `rgba(${lineColor[e.type]},${alpha})`);
+      ctx.strokeStyle = g;
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    });
+
+    /* ---- stars, far to near ---- */
+    visible.sort((a, b) => proj[b].z - proj[a].z);
+    ctx.globalCompositeOperation = 'lighter';
+
+    let bestFocus = null, bestScore = 1e9;
+    visible.forEach(i => {
+      const s = stars[i], P = proj[i];
+      const twinkle = 0.82 + 0.18 * Math.sin(t * s.speed + s.phase);
+      const depth = Math.max(0.4, Math.min(1, 1.2 - P.z / 170));
+      const closeFade = Math.max(0, Math.min(1, (P.z - 0.6) / 2.4));
+      const isNear = s === focusStar;
+      const rad = Math.max(s.kind === 'ambient' ? 1.6 : 3.2, Math.min(52, P.rad)) * (isNear ? 1.35 : 1);
+
+      // focus candidate: close enough, and near the mouse pointer or the middle of the screen
+      const limit = s.kind === 'main' ? FOCUS_DEPTH : FOCUS_DEPTH * 0.7;
+      if (s.kind !== 'ambient' && P.z < limit && P.z > 1.2) {
+        const thr = Math.max(s.kind === 'main' ? 80 : 55, rad * 1.1);
+        const dC = Math.hypot(P.x - cx, P.y - cyS);
+        const dM = mouse.active ? Math.hypot(P.x - mouse.px, P.y - mouse.py) : 1e9;
+        const score = Math.min(dC, dM) / thr;
+        if (score < 1 && score < bestScore) { bestScore = score; bestFocus = i; }
+      }
+
+      if (P.x < -rad * 2 || P.x > W + rad * 2 || P.y < -rad * 2 || P.y > H + rad * 2) return;
+      ctx.globalAlpha = Math.min(1, twinkle * depth * closeFade * (isNear ? 1.2 : 1));
+      const D = rad * (s.kind === 'ambient' ? 4 : 5.5);
+      ctx.drawImage(sprites[s.type], P.x - D / 2, P.y - D / 2, D, D);
+    });
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+
+    setFocus(bestFocus === null ? null : stars[bestFocus]);
+    if (focusStar) {
+      const P = proj[idx(focusStar)];
+      const rad = Math.min(52, Math.max(3.2, P.rad)) * 1.35 * 1.3;
+      const left = Math.max(95, Math.min(W - 95, P.x));
+      const top = Math.max(60, Math.min(H - 190, P.y + rad + 12));
+      card.style.transform = `translate(${left - 85}px, ${top}px)`;
+    }
+
+    /* ---- HUD ---- */
+    const k = dist / R_MAX;
+    gaugeFill.style.width = (k * 100).toFixed(1) + '%';
+    gaugeFill.style.background = k > 0.8 ? '#6b8cae' : '#d9a441';
+    const edge = Math.max(0, Math.min(1, (dist - R_SOFT) / (R_MAX - R_SOFT)));
+    edgeEl.style.opacity = (edge * edge * 0.95).toFixed(3);
+    edgeMsg.classList.toggle('show', edge > 0.92);
+
+    // the nebula drifts a little as you turn
+    nebula.style.transform = `translate(${(-Math.sin(yaw) * 40).toFixed(1)}px, ${(Math.sin(pitch) * 30).toFixed(1)}px)`;
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 </script>
 
 </body>
