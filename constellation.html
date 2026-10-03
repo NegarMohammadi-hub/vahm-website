@@ -222,7 +222,7 @@
 
   /* ---------- Focus mode (zoomed in on one star) ---------- */
   canvas#sky { transition: opacity 1.4s ease; }
-  body.focus canvas#sky { opacity: .55; }
+  body.focus canvas#sky { opacity: .92; }
   body.focus .hint, body.focus .legend, body.focus .gauge,
   body.focus .back-window, body.focus .move-btns { opacity: 0 !important; pointer-events: none; }
 
@@ -288,6 +288,8 @@
   }
   .back-sky.show { opacity: 1; pointer-events: auto; }
   .back-sky:hover { box-shadow: 0 0 18px rgba(242,230,207,.3); }
+  .star-nebula { display: none !important; }
+  .dream-panel { background: linear-gradient(to left, rgba(3,3,8,.5), rgba(3,3,8,0)); }
 </style>
 </head>
 <body>
@@ -720,6 +722,7 @@
   }
 
   function stepTween(now) {
+    if (mode === 'locked') { orbitLocked(now); return; }
     if (!tween) return;
     const k = Math.min(1, (now - tween.t0) / tween.dur);
     tween.update(ease(k));
@@ -736,6 +739,7 @@
     starNeb.style.setProperty('--c3', pal[2]);
     starNeb.style.setProperty('--hue', ((n * 47) % 70 - 35) + 'deg');
     body.classList.add('focus');
+    clouds = makeClouds(s);
     vel.x = vel.y = vel.z = 0; yawVel = pitchVel = 0;
 
     const from = [cam.x, cam.y, cam.z];
@@ -750,10 +754,12 @@
       update(e) {
         cam.x = lerp(from[0], to[0], e); cam.y = lerp(from[1], to[1], e); cam.z = lerp(from[2], to[2], e);
         yaw = y0 + dy * e; pitch = lerp(p0, a1[1], e);
-        starNeb.style.opacity = e;
+        nebAmt = e;
       },
       done() {
         mode = 'locked';
+        lockOff = [cam.x - s.p[0], cam.y - s.p[1], cam.z - s.p[2]];
+        phi = 0; lastOrb = lockT0 = performance.now();
         backSky.classList.add('show');
         openPanel(s);
       },
@@ -843,7 +849,7 @@
         cam.y = s.p[1] + c0[1] * grow;
         const A = aim([cam.x, cam.y, cam.z], s.p, 1 - e);   // star glides back to the middle of the screen
         yaw = A[0]; pitch = A[1];
-        starNeb.style.opacity = 1 - 0.5 * e;
+        nebAmt = 1 - 0.5 * e;
       },
       done: shootToCenter,
     };
@@ -861,11 +867,11 @@
         cam.x = lerp(from[0], 0, e); cam.y = lerp(from[1], 0, e); cam.z = lerp(from[2], 0, e);
         const turnE = Math.min(1, e * 2.2);       // finish turning early, then just glide
         yaw = y0 + dy * turnE; pitch = lerp(p0, a1[1], turnE);
-        starNeb.style.opacity = Math.max(0, 0.5 * (1 - e * 2));
+        nebAmt = Math.max(0, 0.5 * (1 - e * 2));
       },
       done() {
-        mode = 'free'; target = null;
-        starNeb.style.opacity = 0;
+        mode = 'free'; target = null; clouds = [];
+        nebAmt = 0;
         body.classList.remove('focus');
         vel.x = vel.y = vel.z = 0;
       },
@@ -873,6 +879,98 @@
   }
 
   backSky.addEventListener('click', backToSky);
+
+  /* =====================================================================
+     Rainbow nebula clouds: they orbit the star in 3D. Speed and radius
+     wander with sums of unrelated sine waves, so the motion never repeats.
+     ===================================================================== */
+  let nebAmt = 0, clouds = [];
+
+  function cloudSprite(h, sat, l) {
+    const S = 128, c = document.createElement('canvas');
+    c.width = c.height = S;
+    const x = c.getContext('2d');
+    const blob = (cx, cy, r, hh, a) => {
+      const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, `hsla(${hh},${sat}%,${l}%,${a})`);
+      g.addColorStop(0.45, `hsla(${hh},${sat}%,${l}%,${a * 0.4})`);
+      g.addColorStop(1, `hsla(${hh},${sat}%,${l}%,0)`);
+      x.fillStyle = g; x.fillRect(0, 0, S, S);
+    };
+    blob(S / 2, S / 2, S / 2, h, 0.9);
+    for (let i = 0; i < 3; i++) {   // lumps in a neighbouring hue, so every cloud is a little different
+      blob(S * (0.25 + Math.random() * 0.5), S * (0.25 + Math.random() * 0.5), S * (0.18 + Math.random() * 0.15), (h + Math.random() * 50 - 25 + 360) % 360, 0.7);
+    }
+    return c;
+  }
+
+  function makeClouds(s) {
+    const N = 28, base = Math.random() * 360, out = [];
+    const wave = () => ({ f: 0.04 + Math.random() * 0.35, p: Math.random() * 6.28 });
+    for (let i = 0; i < N; i++) {
+      // dream: the whole rainbow. nightmare: cool half of it (cyan -> blue -> violet -> magenta)
+      const hue = s.type === 'dream'
+        ? (base + i * 360 / N + Math.random() * 25) % 360
+        : 165 + (i / N) * 175 + Math.random() * 15;
+      const r0 = 7 + Math.random() * 40;
+      out.push({
+        spr: cloudSprite(hue, 85, s.type === 'dream' ? 58 : 52),
+        r0, size: 9 + Math.random() * 18, alpha: 0.10 + Math.random() * 0.12,
+        th: Math.random() * 6.28,
+        w0: (Math.random() < 0.8 ? 1 : -1) * 0.5 / Math.sqrt(r0 / 6) * (0.6 + Math.random() * 0.8),
+        tx: (Math.random() - 0.5) * 1.6, tz: (Math.random() - 0.5) * 1.6,
+        sw: [wave(), wave(), wave()], sr: [wave(), wave()],
+        rot: Math.random() * 6.28, spin: (Math.random() - 0.5) * 0.2, asp: 0.55 + Math.random() * 0.45,
+      });
+    }
+    return out;
+  }
+
+  function drawClouds(t, dt, fx, fy, fz, rx, rz, ux, uy, uz, cx, cyS) {
+    const sp = target.p;
+    ctx.globalCompositeOperation = 'lighter';
+    clouds.forEach(c => {
+      const wob = 1 + 0.6 * Math.sin(c.sw[0].f * t + c.sw[0].p) + 0.4 * Math.sin(c.sw[1].f * t + c.sw[1].p) + 0.25 * Math.sin(c.sw[2].f * t + c.sw[2].p);
+      c.th += c.w0 * wob * dt;
+      const rr = c.r0 * (1 + 0.18 * Math.sin(c.sr[0].f * t + c.sr[0].p) + 0.1 * Math.sin(c.sr[1].f * t + c.sr[1].p));
+      const ax = c.tx + 0.3 * Math.sin(0.05 * t + c.sw[1].p), az = c.tz + 0.3 * Math.sin(0.04 * t + c.sw[2].p);
+      const x0 = Math.cos(c.th) * rr, z0 = Math.sin(c.th) * rr;
+      const y1 = -z0 * Math.sin(ax), z1 = z0 * Math.cos(ax);
+      const wx = sp[0] + x0 * Math.cos(az) - y1 * Math.sin(az);
+      const wy = sp[1] + x0 * Math.sin(az) + y1 * Math.cos(az);
+      const wz = sp[2] + z1;
+      const dx = wx - cam.x, dy = wy - cam.y, dz = wz - cam.z;
+      const zc = dx * fx + dy * fy + dz * fz;
+      if (zc < 1.5) return;
+      const sx = cx + (dx * rx + dz * rz) / zc * focal;
+      const sy = cyS - (dx * ux + dy * uy + dz * uz) / zc * focal;
+      const w = Math.min(1100, c.size * focal / zc), h = w * c.asp;
+      if (sx < -w || sx > W + w || sy < -w || sy > H + w) return;
+      ctx.globalAlpha = Math.min(1, nebAmt * c.alpha * Math.min(1, (zc - 1.5) / 6));
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(c.rot + t * c.spin);
+      ctx.drawImage(c.spr, -w / 2, -h / 2, w, h);
+      ctx.restore();
+    });
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+  }
+
+  /* =====================================================================
+     While locked, the camera slowly circles the star (speed wanders, never repeats)
+     ===================================================================== */
+  let lockOff = null, phi = 0, lastOrb = 0, lockT0 = 0;
+
+  function orbitLocked(now) {
+    const dt = Math.min(0.05, (now - lastOrb) / 1000); lastOrb = now;
+    const t = now / 1000, s = target;
+    phi += 0.14 * dt * (1 + 0.7 * Math.sin(t * 0.31 + 1.3) + 0.5 * Math.sin(t * 0.173 + 4.1) + 0.3 * Math.sin(t * 0.07 + 2.2));
+    const c = Math.cos(phi), n = Math.sin(phi);
+    cam.x = s.p[0] + lockOff[0] * c - lockOff[2] * n;
+    cam.z = s.p[2] + lockOff[0] * n + lockOff[2] * c;
+    cam.y = s.p[1] + lockOff[1] + 0.5 * Math.sin((now - lockT0) / 1000 * 0.21);
+    const A = aim([cam.x, cam.y, cam.z], s.p, 1);   // star stays on the left, text on the right
+    yaw = A[0]; pitch = A[1];
+  }
 
   /* =====================================================================
      Main loop
@@ -954,6 +1052,7 @@
     const cx = W / 2, cyS = H / 2;
 
     ctx.clearRect(0, 0, W, H);
+    if (target && nebAmt > 0.01) drawClouds(t, dt, fx, fy, fz, rx, rz, ux, uy, uz, cx, cyS);
 
     /* ---- dust ---- */
     let curColor = -1;
