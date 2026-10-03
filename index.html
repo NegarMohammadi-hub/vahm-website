@@ -45,6 +45,48 @@
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+  #vidFalling {
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .blackout {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 150;
+    transition: opacity 0.8s ease;
+  }
+
+  .sound-btn {
+    position: fixed;
+    bottom: 22px;
+    right: 24px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(242,230,207,0.35);
+    background: rgba(10,8,14,0.4);
+    backdrop-filter: blur(3px);
+    color: #f2e6cf;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
+    transition: opacity 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .sound-btn:hover { opacity: 1; box-shadow: 0 0 16px rgba(242,230,207,0.25); }
+  .sound-btn svg { width: 18px; height: 18px; }
+  .sound-btn .icon-on { display: none; }
+  .sound-btn.on .icon-on { display: block; }
+  .sound-btn.on .icon-off { display: none; }
+  .sound-btn.hide { opacity: 0; pointer-events: none; }
+
   .auth-panel {
     position: absolute;
     left: 50%;
@@ -158,12 +200,27 @@
 <div class="eyelid eyelid-top" id="eyelidTop"></div>
 <div class="eyelid eyelid-bottom" id="eyelidBottom"></div>
 
+<div class="blackout" id="blackout"></div>
+
+<button class="sound-btn" id="soundBtn" title="صدا" aria-label="صدا">
+  <svg class="icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 5 6 9H3v6h3l5 4V5z"/><line x1="16" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="16" y2="15"/>
+  </svg>
+  <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+  </svg>
+</button>
+
 <div class="scene">
   <div class="frame">
     <video class="bg show" id="vidLying"
            src="landing-lying.mp4" poster="landing-lying.jpg"
            autoplay muted loop playsinline preload="auto"
            disablepictureinpicture aria-label="فرد خوابیده در آسمان"></video>
+    <video class="bg" id="vidFalling"
+           src="landing-falling.mp4"
+           playsinline preload="auto"
+           disablepictureinpicture aria-label="فرد در حال سقوط"></video>
     <img class="bg" id="imgFalling" src="landing-falling.jpg" alt="فرد ایستاده در حال سقوط">
 
     <div class="auth-panel" id="authPanel">
@@ -178,6 +235,7 @@
   </div>
 </div>
 
+<script src="vahm-music.js"></script>
 <script>
   const eyelidTop = document.getElementById('eyelidTop');
   const eyelidBottom = document.getElementById('eyelidBottom');
@@ -185,16 +243,19 @@
   const emailInput = document.getElementById('emailInput');
   const errorMsg = document.getElementById('errorMsg');
   const vidLying = document.getElementById('vidLying');
+  const vidFalling = document.getElementById('vidFalling');
   const imgFalling = document.getElementById('imgFalling');
+  const blackout = document.getElementById('blackout');
+  const soundBtn = document.getElementById('soundBtn');
 
-  // Some browsers block autoplay; retry on first interaction
+  // ---------- Landing loop (muted until the first interaction) ----------
   vidLying.play().catch(() => {
     const kick = () => { vidLying.play(); };
     window.addEventListener('pointerdown', kick, { once: true });
     window.addEventListener('keydown', kick, { once: true });
   });
 
-  // Gapless loop: jump back just before the end instead of waiting for the native loop restart
+  // Gapless loop
   (function gaplessLoop() {
     if (vidLying.duration && vidLying.currentTime > vidLying.duration - 0.06) {
       vidLying.currentTime = 0;
@@ -202,32 +263,112 @@
     requestAnimationFrame(gaplessLoop);
   })();
 
+  // ---------- Sound ----------
+  // Browsers don't allow audio before the user interacts with the page,
+  // so the loop starts muted and sound turns on at the first click/keypress.
+  function setSound(on) {
+    vidLying.muted = !on;
+    if (on) vidLying.volume = 1;
+    soundBtn.classList.toggle('on', on);
+    VahmMusic.setOn(on, on ? 3 : 0.5);   // ambient music follows the same on/off
+  }
+
+  let gestured = false;
+  function firstGesture(e) {
+    if (gestured) return;
+    gestured = true;
+    if (e.target.closest && e.target.closest('#soundBtn')) return;
+    setSound(true);
+  }
+  window.addEventListener('pointerdown', firstGesture);
+  window.addEventListener('keydown', firstGesture);
+
+  soundBtn.addEventListener('click', () => {
+    gestured = true;
+    setSound(vidLying.muted);
+  });
+
+  function fadeOutAudio(video, ms) {
+    const startVol = video.volume;
+    const t0 = performance.now();
+    (function step(now) {
+      const k = Math.min(1, (now - t0) / ms);
+      video.volume = startVol * (1 - k);
+      if (k < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+
   function isValidEmail(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
   }
 
+  // ---------- Login -> falling video (with sound) -> dark -> room ----------
+  let leaving = false;
+
+  function goToRoom() {
+    try { sessionStorage.setItem('vahm_from_fall', '1'); } catch (e) {}
+    window.location.href = 'room.html';
+  }
+
+  // Old behaviour, used only if the falling video can't play
+  function fallbackToImage() {
+    vidFalling.style.display = 'none';
+    vidLying.style.opacity = '0';
+    imgFalling.classList.add('show', 'falling-drift');
+    setTimeout(() => {
+      eyelidTop.classList.add('closing');
+      eyelidBottom.classList.add('closing');
+    }, 1900);
+    setTimeout(goToRoom, 2450);
+  }
+
   function proceed() {
+    if (leaving) return;
     const email = emailInput.value.trim();
     if (!isValidEmail(email)) {
       errorMsg.classList.add('show');
       return;
     }
     errorMsg.classList.remove('show');
+    leaving = true;
 
     authPanel.classList.add('hide');
-    vidLying.style.opacity = '0';
-    vidLying.style.animation = 'none';
-    imgFalling.classList.add('show');
-    imgFalling.classList.add('falling-drift');
+    soundBtn.classList.add('hide');
+    if (!VahmMusic.isOn() && !vidLying.muted) VahmMusic.setOn(true, 3);
 
-    setTimeout(() => {
-      eyelidTop.classList.add('closing');
-      eyelidBottom.classList.add('closing');
-    }, 1900);
+    vidFalling.currentTime = 0;
+    vidFalling.muted = false;
+    vidFalling.volume = 1;
 
-    setTimeout(() => {
-      window.location.href = 'room.html';
-    }, 2450);
+    let started = false;
+    const begin = () => {
+      started = true;
+      vidFalling.classList.add('show');
+      // crossfade: loop video + its sound fade away while the fall begins
+      if (!vidLying.muted) fadeOutAudio(vidLying, 600);
+      vidLying.style.animation = 'none';
+      setTimeout(() => vidLying.pause(), 700);
+    };
+
+    vidFalling.play().then(begin).catch(() => {
+      // sound blocked? still play the picture muted rather than failing
+      vidFalling.muted = true;
+      vidFalling.play().then(begin).catch(fallbackToImage);
+    });
+
+    // last second: let the screen settle fully to black
+    vidFalling.addEventListener('timeupdate', () => {
+      if (vidFalling.duration && vidFalling.duration - vidFalling.currentTime < 0.8) {
+        blackout.style.opacity = '1';
+      }
+    });
+
+    vidFalling.addEventListener('ended', () => {
+      blackout.style.opacity = '1';
+      setTimeout(goToRoom, 900);
+    });
+
+    vidFalling.addEventListener('error', () => { if (!started) fallbackToImage(); });
   }
 
   document.getElementById('loginBtn').addEventListener('click', proceed);

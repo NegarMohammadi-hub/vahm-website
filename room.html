@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>وهم | اتاق‌خواب</title>
+<script>
+  // Coming from the falling video: start fully black, then fade the room in slowly
+  try {
+    if (sessionStorage.getItem('vahm_from_fall') === '1') {
+      document.documentElement.classList.add('from-fall');
+    }
+  } catch (e) {}
+</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -26,47 +34,22 @@
 
   .room-wrap {
     position: relative;
-    width: min(100vw, 1400px, calc(100vh * 1827 / 861));
-    aspect-ratio: 1827 / 861;
+    width: 100%;
+    max-width: 1400px;
+    aspect-ratio: 1024 / 559;
   }
-
-  /* image + video share one layer so the lamp "dark" filter hits both */
-  .room-stage {
-    position: absolute;
-    inset: 0;
-    filter: brightness(1);
-    transition: filter 0.8s ease;
-  }
-  .room-wrap.dark .room-stage { filter: brightness(0.15) contrast(1.1); }
-
-  /* video is aligned to the image: covers x 8.116% -> 91.9%, full height.
-     Only the paper area is revealed (feathered mask), so no seams show. */
-  .breeze {
-    position: absolute;
-    left: 8.116%;
-    top: 0;
-    width: 83.78%;
-    height: 100%;
-    object-fit: fill;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.35s ease;
-    -webkit-mask-image:
-      linear-gradient(to right, transparent 0%, #000 4%, #000 46%, transparent 50%),
-      linear-gradient(to bottom, transparent 28%, #000 33%, #000 70%, transparent 76%);
-    -webkit-mask-composite: source-in;
-    mask-image:
-      linear-gradient(to right, transparent 0%, #000 4%, #000 46%, transparent 50%),
-      linear-gradient(to bottom, transparent 28%, #000 33%, #000 70%, transparent 76%);
-    mask-composite: intersect;
-  }
-  .breeze.playing { opacity: 1; }
 
   .room-img {
     width: 100%;
     height: 100%;
     display: block;
     object-fit: contain;
+    filter: brightness(1);
+    transition: filter 0.8s ease;
+  }
+
+  .room-wrap.dark .room-img {
+    filter: brightness(0.15) contrast(1.1);
   }
 
   .hotspot {
@@ -83,27 +66,23 @@
   }
 
   .hotspot--desk {
-    left: 5.5%;
-    top: 60%;
-    width: 43%;
-    height: 38%;
+    left: 3%;
+    top: 48%;
+    width: 47%;
+    height: 42%;
   }
 
   .hotspot--window {
-    left: 56%;
-    top: 2%;
-    width: 31%;
-    height: 65%;
+    left: 58%;
+    top: 5%;
+    width: 26%;
+    height: 55%;
   }
-
-  /* paper zones: hovering triggers the breeze (clicks still go to the desk) */
-  .hotspot--papers-table { left: 11.5%; top: 61%; width: 34%; height: 12%; z-index: 3; }
-  .hotspot--papers-wall  { left: 17%;   top: 32%; width: 14.5%; height: 22%; z-index: 3; }
 
   .handle-icon {
     position: absolute;
-    left: 83.5%;
-    top: 40%;
+    left: 82%;
+    top: 30%;
     width: 26px;
     height: 26px;
     cursor: pointer;
@@ -117,10 +96,10 @@
   .handle-icon svg { width: 100%; height: 100%; }
 
   .hotspot--lamp {
-    left: 59.4%;
-    top: 42%;
-    width: 6%;
-    height: 23%;
+    left: 60%;
+    top: 40%;
+    width: 9%;
+    height: 27%;
     border-radius: 50%;
   }
   .hotspot--lamp:hover {
@@ -195,6 +174,20 @@
     letter-spacing: 1px;
   }
 
+  .intro-fade {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 300;
+  }
+  html.from-fall .intro-fade { opacity: 1; }
+  html.from-fall .intro-fade.go {
+    opacity: 0;
+    transition: opacity 3.6s ease-in-out;
+  }
+
   .eyelid {
     position: fixed;
     left: 0; right: 0;
@@ -216,6 +209,7 @@
 </head>
 <body>
 
+<div class="intro-fade" id="introFade"></div>
 <div class="eyelid eyelid-top" id="eyelidTop"></div>
 <div class="eyelid eyelid-bottom" id="eyelidBottom"></div>
 
@@ -223,14 +217,9 @@
   <div class="hint">روی میز، پنجره، دستگیره‌ی پنجره یا آباژور کلیک کن</div>
 
   <div class="room-wrap" id="roomWrap">
-    <div class="room-stage">
-      <img class="room-img" src="room.jpg" alt="اتاق‌خواب وهم" />
-      <video class="breeze" id="breeze" src="room-breeze.mp4" muted playsinline preload="auto"></video>
-    </div>
+    <img class="room-img" src="room.jpg" alt="اتاق‌خواب وهم" />
 
     <div class="hotspot hotspot--desk" id="deskHotspot" title="میز"></div>
-    <div class="hotspot hotspot--papers-table" data-papers title="کاغذها"></div>
-    <div class="hotspot hotspot--papers-wall" data-papers title="کاغذها"></div>
     <div class="hotspot hotspot--window" id="windowHotspot" title="پنجره"></div>
     <div class="handle-icon" id="handleHotspot" title="دستگیره‌ی پنجره">
       <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
@@ -247,6 +236,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="vahm-music.js"></script>
 <script>
   const facts = [
     "در طول یک شب، انسان معمولاً بین ۴ تا ۶ خواب می‌بیند، حتی اگر هیچ‌کدام را به‌خاطر نیاورد.",
@@ -292,42 +282,29 @@
     setTimeout(() => { window.location.href = url; }, 520);
   }
 
+  const fromFall = document.documentElement.classList.contains('from-fall');
+
+  // keep the ambient music going from the previous page (slow fade-in while the room appears)
+  VahmMusic.resume(5);
+
   window.addEventListener('DOMContentLoaded', () => {
+    if (fromFall) return; // slow fade-in is handled below instead of the quick eyelid opening
     eyelidTop.classList.add('opening');
     eyelidBottom.classList.add('opening');
   });
 
-  document.getElementById('deskHotspot').addEventListener('click', () => {
-    blinkTo('desk.html');
-  });
-
-  // ---- Paper breeze animation ----
-  // Plays on hover (entering the papers), at most once per 30 seconds.
-  // Staying on the papers never re-triggers it; you must leave and re-enter.
-  const breeze = document.getElementById('breeze');
-  const BREEZE_COOLDOWN = 30000;
-  let lastBreeze = -Infinity;
-  let breezePlaying = false;
-
-  function playBreeze() {
-    const now = Date.now();
-    if (breezePlaying || now - lastBreeze < BREEZE_COOLDOWN) return;
-    breezePlaying = true;
-    lastBreeze = now;
-    breeze.currentTime = 0;
-    breeze.play().then(() => breeze.classList.add('playing'))
-      .catch(() => { breezePlaying = false; lastBreeze = -Infinity; });
+  if (fromFall) {
+    try { sessionStorage.removeItem('vahm_from_fall'); } catch (e) {}
+    // wait until the room image is loaded, then fade in slowly from black
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('introFade').classList.add('go');
+      }, 400);
+    });
   }
 
-  breeze.addEventListener('ended', () => {
-    breeze.classList.remove('playing');
-    setTimeout(() => { breezePlaying = false; breeze.currentTime = 0; }, 400);
-    lastBreeze = Date.now(); // cooldown counts from the end of the animation
-  });
-
-  document.querySelectorAll('[data-papers]').forEach(el => {
-    el.addEventListener('pointerenter', playBreeze);
-    el.addEventListener('click', () => blinkTo('desk.html'));
+  document.getElementById('deskHotspot').addEventListener('click', () => {
+    blinkTo('desk.html');
   });
 
   document.getElementById('windowHotspot').addEventListener('click', () => {
