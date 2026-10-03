@@ -194,6 +194,14 @@
     window.addEventListener('keydown', kick, { once: true });
   });
 
+  // Gapless loop: jump back just before the end instead of waiting for the native loop restart
+  (function gaplessLoop() {
+    if (vidLying.duration && vidLying.currentTime > vidLying.duration - 0.06) {
+      vidLying.currentTime = 0;
+    }
+    requestAnimationFrame(gaplessLoop);
+  })();
+
   function isValidEmail(v) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
   }
